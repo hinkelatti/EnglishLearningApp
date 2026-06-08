@@ -1783,8 +1783,24 @@ async function builderGenerate(){
   var typeLabels = {'positive': 'Állítás (+)', 'negative': 'Tagadás (−)', 'question': 'Kérdés (?)'};
 
   try {
+    var bldComplexity = {
+      A1: 'Keep the sentence short and simple (5–8 words).',
+      A2: 'Keep the sentence short and simple (5–8 words).',
+      B1: 'Use a moderately complex sentence (8–12 words).',
+      B2: 'Use a complex sentence with a subordinate clause (12+ words).',
+      C1: 'Use a complex sentence with a subordinate clause (12+ words).'
+    }[tenseLevel] || 'Keep the sentence simple.';
+    var bldWordCount = {A1:'4-5', A2:'4-5', B1:'5-7', B2:'6-8', C1:'6-8'}[tenseLevel] || '5-7';
+    var bldTopics = ['everyday life', 'travel', 'social situations', 'technology'];
+    var bldTopic = Math.random() < 0.5
+      ? 'business English'
+      : bldTopics[Math.floor(Math.random() * bldTopics.length)];
+
     var bldSys = 'Output ONLY a JSON object with these exact keys: hu, answer, words. No markdown, no extra text.';
-    var bldMsg = 'Tense: ' + tenseName + '. Sentence type: ' + sentType + '. Level: ' + tenseLevel + '. Generate a business English sentence building exercise. Return JSON only with keys: hu (Hungarian translation), answer (correct English sentence), words (array of 4-5 base-form content words from the answer, no articles or auxiliaries).';
+    var bldMsg = 'Tense: ' + tenseName + '. Sentence type: ' + sentType + '. Level: ' + tenseLevel + '.'
+      + ' Generate a sentence building exercise in the context of ' + bldTopic + '. ' + bldComplexity
+      + ' Return JSON only: hu (Hungarian translation), answer (correct English sentence),'
+      + ' words (array of ' + bldWordCount + ' base-form content words, no articles or auxiliaries).';
     var r = await claude(bldSys, bldMsg, 300);
     console.log('Builder raw:', r);
     var d = safeParseJSON(r);
