@@ -180,7 +180,7 @@
 /* Mondatszerkesztő */
 .builder-settings{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
 .bld-task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem;margin-top:1rem}
-.bld-task-meta{display:flex;gap:8px;align-items:center;margin-bottom:.8rem}
+.bld-task-meta{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;margin-bottom:.8rem}
 .bld-type-badge{font-size:.76rem;padding:3px 10px;background:rgba(58,127,191,.08);border:1px solid rgba(58,127,191,.2);border-radius:99px;color:var(--accent2)}
 .bld-hu-text{font-size:1rem;font-weight:500;color:var(--text);line-height:1.6;margin-bottom:1rem;padding:.7rem .9rem;background:var(--surface2);border-radius:var(--rs)}
 .bld-words-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem}
