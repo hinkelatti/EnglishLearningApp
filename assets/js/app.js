@@ -1811,6 +1811,8 @@ async function builderGenerate(){
       : '';
     var schemaEl = document.getElementById('bld-schema-line');
     if(schemaEl) schemaEl.textContent = schemaLine;
+    var useEl = document.getElementById('bld-tense-use');
+    if(useEl) useEl.textContent = rmItem ? (rmItem.use || '') : '';
 
     var chipsHtml = d.words.map(function(w){
       return '<span class="bld-word-chip">'+w+'</span>';
