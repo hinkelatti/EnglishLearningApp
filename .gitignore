@@ -1,0 +1,13 @@
+# Lokális Claude Code kontextus — NE kerüljön a repóba / Cloudflare-re
+# (a wrangler.toml [assets] directory="." miatt minden gyökérfájl kiszolgálódna)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS / Windows / OneDrive
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Node (csak ha később Vite/bundler jön)
+node_modules/
+dist/
