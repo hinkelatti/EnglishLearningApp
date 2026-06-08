@@ -767,26 +767,23 @@
 
         <!-- Beállítások -->
         <div class="builder-settings">
-          <div class="writing-type-group">
-            <span class="writing-type-label">Igeidő:</span>
-            <button class="writing-type-btn active" id="bld-tense-any" onclick="setBldTense('any',this)">Véletlenszerű</button>
-            <button class="writing-type-btn" id="bld-tense-pick" onclick="setBldTense('pick',this)">Választom</button>
+          <!-- Igeidő lenyíló -->
+          <div style="margin-bottom:.5rem">
+            <button id="bld-tense-header" onclick="toggleBldTenseDropdown()" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:.45rem .8rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;color:var(--text)">
+              <span id="bld-tense-summary">Igeidő: Véletlenszerű (összes)</span>
+              <span id="bld-tense-arrow" style="font-size:.7rem;color:var(--muted)">▾</span>
+            </button>
+            <div id="bld-tense-picker" style="display:none;padding:.8rem;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rs) var(--rs)">
+              <!-- JS tölti fel szintenként -->
+            </div>
           </div>
+          <!-- Típus -->
           <div class="writing-type-group">
             <span class="writing-type-label">Típus:</span>
             <button class="writing-type-btn" id="bld-type-pos" onclick="setBldType('positive',this)">Állítás</button>
             <button class="writing-type-btn" id="bld-type-neg" onclick="setBldType('negative',this)">Tagadás</button>
             <button class="writing-type-btn" id="bld-type-q" onclick="setBldType('question',this)">Kérdés</button>
             <button class="writing-type-btn active" id="bld-type-any" onclick="setBldType('any',this)">Vegyes</button>
-          </div>
-        </div>
-
-        <!-- Igeidő választó (rejtett amíg nem kell) -->
-        <div id="bld-tense-picker" style="display:none;margin-bottom:1rem">
-          <div id="bld-tense-chips" class="tense-chips" style="flex-wrap:wrap;gap:6px"></div>
-          <div style="margin-top:6px;display:flex;gap:6px">
-            <button class="btn btn-outline btn-sm" onclick="bldSelectAllTenses()">Mindet</button>
-            <button class="btn btn-outline btn-sm" onclick="bldClearTenses()">Törlés</button>
           </div>
         </div>
 

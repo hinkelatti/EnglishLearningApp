@@ -1560,19 +1560,24 @@ document.addEventListener('keydown', function(e){
 // ============================================================
 // MONDATSZERKESZTÉS MODUL
 // ============================================================
-var bldTenseMode = 'any';    // 'any' | 'pick'
 var bldSentType = 'any';     // 'positive' | 'negative' | 'question' | 'any'
 var bldCurrentTask = null;   // {hu, answer, tense, type, words}
 
-function setBldTense(mode, el){
-  bldTenseMode = mode;
-  document.querySelectorAll('[id^="bld-tense-"]').forEach(function(b){
-    if(b.tagName === 'BUTTON') b.classList.remove('active');
-  });
-  if(el) el.classList.add('active');
+function toggleBldTenseDropdown(){
   var picker = document.getElementById('bld-tense-picker');
-  if(picker) picker.style.display = mode === 'pick' ? 'block' : 'none';
-  localStorage.setItem('bld_tense_mode', mode);
+  var arrow  = document.getElementById('bld-tense-arrow');
+  if(!picker) return;
+  var open = picker.style.display !== 'none';
+  picker.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.textContent = open ? '▾' : '▴';
+}
+
+function updateBldTenseSummary(){
+  var el = document.getElementById('bld-tense-summary');
+  if(!el) return;
+  el.textContent = bldSelectedTenses.size === 0
+    ? 'Igeidő: Véletlenszerű (összes)'
+    : 'Igeidő: ' + bldSelectedTenses.size + ' kiválasztva';
 }
 
 function setBldType(type, el){
@@ -1594,37 +1599,66 @@ function toggleBldMeta(){
 var bldSelectedTenses = new Set();
 
 function initBuilderTenseSelect(){
-  var wrap = document.getElementById('bld-tense-chips');
-  if(wrap && wrap.children.length === 0){
-    ROADMAP.forEach(function(band){
-    band.items.forEach(function(item){
-      var ex = GRAMMAR_EXERCISES[item.id];
-      if(!ex || ex.category !== 'tense') return;
+  var wrap = document.getElementById('bld-tense-picker');
+  if(!wrap || wrap.dataset.built) return;
+  wrap.dataset.built = '1';
+
+  // Mentett szelekció visszaállítása
+  var saved = JSON.parse(localStorage.getItem('bld_selected_tenses') || '[]');
+  bldSelectedTenses = new Set(saved);
+
+  // Szintenként csoportosított igeidők
+  ROADMAP.forEach(function(band){
+    var tenses = band.items.filter(function(item){
+      return GRAMMAR_EXERCISES[item.id] && GRAMMAR_EXERCISES[item.id].category === 'tense';
+    });
+    if(!tenses.length) return;
+
+    var group = document.createElement('div');
+    group.style.cssText = 'margin-bottom:.7rem';
+
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px';
+    lbl.textContent = band.level + ' — ' + band.title.replace(/^[A-Z0-9]+ — /, '');
+    group.appendChild(lbl);
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px';
+
+    tenses.forEach(function(item){
       var chip = document.createElement('div');
-      chip.className = 'tense-chip chip-tense';
+      chip.className = 'tense-chip chip-tense' + (bldSelectedTenses.has(item.id) ? ' selected' : '');
       chip.setAttribute('data-id', item.id);
-      chip.innerHTML = '<div class="tc-name">' + band.level + ' · ' + item.en + '</div>';
+      chip.innerHTML = '<div class="tc-name">' + item.en + '</div>';
       chip.onclick = function(){
-        var id = item.id;
-        if(bldSelectedTenses.has(id)){
-          bldSelectedTenses.delete(id);
+        if(bldSelectedTenses.has(item.id)){
+          bldSelectedTenses.delete(item.id);
           chip.classList.remove('selected');
         } else {
-          bldSelectedTenses.add(id);
+          bldSelectedTenses.add(item.id);
           chip.classList.add('selected');
         }
+        localStorage.setItem('bld_selected_tenses', JSON.stringify(Array.from(bldSelectedTenses)));
+        updateBldTenseSummary();
       };
-      wrap.appendChild(chip);
+      row.appendChild(chip);
     });
+
+    group.appendChild(row);
+    wrap.appendChild(group);
   });
-  }
-  // Mentett beállítások visszaállítása
-  var savedTenseMode = localStorage.getItem('bld_tense_mode');
-  var savedSentType  = localStorage.getItem('bld_sent_type');
-  if(savedTenseMode){
-    var tBtn = document.getElementById(savedTenseMode === 'any' ? 'bld-tense-any' : 'bld-tense-pick');
-    setBldTense(savedTenseMode, tBtn);
-  }
+
+  // Mindet / Törlés gombok
+  var actions = document.createElement('div');
+  actions.style.cssText = 'margin-top:.5rem;display:flex;gap:6px;border-top:1px solid var(--border);padding-top:.5rem';
+  actions.innerHTML = '<button class="btn btn-outline btn-sm" onclick="bldSelectAllTenses()">Mindet</button>'
+    + '<button class="btn btn-outline btn-sm" onclick="bldClearTenses()">Törlés</button>';
+  wrap.appendChild(actions);
+
+  updateBldTenseSummary();
+
+  // Mentett típus visszaállítása
+  var savedSentType = localStorage.getItem('bld_sent_type');
   if(savedSentType){
     var typeMap = {positive:'pos', negative:'neg', question:'q', any:'any'};
     var sBtn = document.getElementById('bld-type-' + (typeMap[savedSentType] || 'any'));
@@ -1633,17 +1667,21 @@ function initBuilderTenseSelect(){
 }
 
 function bldSelectAllTenses(){
-  document.querySelectorAll('#bld-tense-chips .tense-chip').forEach(function(c){
+  document.querySelectorAll('#bld-tense-picker [data-id]').forEach(function(c){
     var id = c.getAttribute('data-id');
     if(id){ bldSelectedTenses.add(id); c.classList.add('selected'); }
   });
+  localStorage.setItem('bld_selected_tenses', JSON.stringify(Array.from(bldSelectedTenses)));
+  updateBldTenseSummary();
 }
 
 function bldClearTenses(){
   bldSelectedTenses.clear();
-  document.querySelectorAll('#bld-tense-chips .tense-chip').forEach(function(c){
+  document.querySelectorAll('#bld-tense-picker [data-id]').forEach(function(c){
     c.classList.remove('selected');
   });
+  localStorage.setItem('bld_selected_tenses', '[]');
+  updateBldTenseSummary();
 }
 
 async function builderGenerate(){
@@ -1657,19 +1695,11 @@ async function builderGenerate(){
   var metaBtn = document.getElementById('bld-meta-toggle');
   if(metaBtn) metaBtn.textContent = '▾ Igeidő / Típus';
 
-  // Pick tense
-  var tenseId = '';
-  if(bldTenseMode === 'pick'){
-    var pool = Array.from(bldSelectedTenses);
-    if(!pool.length){ hide('bld-loading'); if(btn) btn.disabled=false;
-      alert('Válassz legalább egy igeidőt!'); return; }
-    tenseId = pool[Math.floor(Math.random() * pool.length)];
-  } else {
-    var tenseIds = Object.keys(GRAMMAR_EXERCISES).filter(function(id){
-      return GRAMMAR_EXERCISES[id].category === 'tense';
-    });
-    tenseId = tenseIds[Math.floor(Math.random() * tenseIds.length)];
-  }
+  // Pick tense — ha van kiválasztva, abból véletlenszerű; ha nincs, az összes közül
+  var pool = bldSelectedTenses.size > 0
+    ? Array.from(bldSelectedTenses)
+    : Object.keys(GRAMMAR_EXERCISES).filter(function(id){ return GRAMMAR_EXERCISES[id].category === 'tense'; });
+  var tenseId = pool[Math.floor(Math.random() * pool.length)];
 
   var rmItem = null;
   ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===tenseId) rmItem=i; }); });
