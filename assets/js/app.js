@@ -938,14 +938,12 @@ function safeParseJSON(text){
 }
 
 async function claude(system, user, maxTokens){
-  if(!apiKey) { alert('Adj meg API kulcsot!'); throw new Error('No API key'); }
-  var r = await fetch('https://api.anthropic.com/v1/messages', {
+  if(!apiKey) { alert('Adj meg belépési kódot!'); throw new Error('No sync token'); }
+  var r = await fetch('/api/claude', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Authorization': 'Bearer ' + apiKey
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
@@ -964,17 +962,16 @@ async function claude(system, user, maxTokens){
 // ============================================================
 function saveKey(){
   var k = document.getElementById('api-input').value.trim();
-  if(!k){ alert('Adj meg egy érvényes API kulcsot!'); return; }
-  if(!k.startsWith('sk-')){ document.getElementById('key-err').style.display='block'; return; }
+  if(!k){ alert('Adj meg egy belépési kódot!'); return; }
   apiKey = k;
-  localStorage.setItem('anthropic_api_key', k);
+  localStorage.setItem('sync_token', k);
   document.getElementById('api-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   launchApp();
 }
 
 function changeKey(){
-  localStorage.removeItem('anthropic_api_key');
+  localStorage.removeItem('sync_token');
   location.reload();
 }
 
@@ -1013,7 +1010,7 @@ function launchApp(){
 }
 
 window.onload = function(){
-  var stored = localStorage.getItem('anthropic_api_key');
+  var stored = localStorage.getItem('sync_token');
   if(stored){
     apiKey = stored;
     document.getElementById('api-screen').style.display = 'none';
@@ -1506,13 +1503,11 @@ async function tutorGetReply(msg){
   });
 
   try {
-    var r = await fetch('https://api.anthropic.com/v1/messages', {
+    var r = await fetch('/api/claude', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': 'Bearer ' + apiKey
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -2713,7 +2708,7 @@ async function convoGetReply(){
   if(!msgs.length) msgs=[{role:'user',content:'Please start.'}];
   show('convo-thinking');
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,system:convoSystemPrompt,messages:msgs})});
+    var r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,system:convoSystemPrompt,messages:msgs})});
     var d=await r.json(); if(d.error) throw new Error(d.error.message);
     var reply=d.content[0].text.trim();
     convoHistory.push({role:'claude',content:reply});
@@ -2727,7 +2722,7 @@ async function convoGetReply(){
 async function convoGetReplyText(){
   var msgs=convoHistory.map(function(m){ return {role:m.role==='claude'?'assistant':'user',content:m.content}; });
   try{
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,system:convoSystemPrompt,messages:msgs})});
+    var r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,system:convoSystemPrompt,messages:msgs})});
     var d=await r.json(); if(d.error) throw new Error(d.error.message);
     return d.content[0].text.trim();
   } catch(e){ return '(Hiba: '+e.message+')'; }
