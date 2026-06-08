@@ -1041,8 +1041,22 @@ function changeKey(){
   location.reload();
 }
 
+// Nav gomb ID-k térképe (active_main értékhez)
+var NAV_BTN_IDS = {translate:'nav-translate', roadmap:'nav-roadmap', oxford:'nav-vocab-btn', convo:'nav-convo', tenses:'nav-tenses'};
+
 function launchApp(){
-  Store.pull(); // D1-ből szinkronizál, nem blokkoló — builder nyitása előtt végez
+  Store.pull().then(function(){
+    var mainName = Store.get('active_main', 'roadmap');
+    if(mainName !== 'roadmap'){
+      var navBtn = document.getElementById(NAV_BTN_IDS[mainName] || 'nav-roadmap');
+      showMain(mainName, navBtn);
+    }
+    if(mainName === 'tenses'){
+      var tabName = Store.get('active_tense_tab', 'practice');
+      var tabBtn = document.getElementById('tense-tab-' + tabName);
+      showTenseTab(tabName, tabBtn);
+    }
+  });
   oxLoad();
   initProgressPanel();
   renderRoadmap();
@@ -1106,6 +1120,7 @@ function showMain(name, el){
   var panel = document.getElementById('panel-'+name);
   if(panel) panel.classList.add('active');
   if(el) el.classList.add('active');
+  Store.set('active_main', name);
   if(name==='roadmap'){ initProgressPanel(); }
   if(name==='translate'){ renderGenTopics(); }
   if(name==='oxford'){ oxLoad(); oxPhraseLoad(); oxPage=0; renderOxWordlist(); }
@@ -1155,6 +1170,7 @@ function showTenseTab(name, el){
   var panel = document.getElementById('tpanel-'+name);
   if(panel) panel.classList.add('active');
   if(el) el.classList.add('active');
+  Store.set('active_tense_tab', name);
   if(name==='tenses') renderTenseOnlySelector();
   if(name==='builder'){ initBuilderTenseSelect(); }
   if(name==='reference') renderGrReference();
@@ -1787,6 +1803,14 @@ async function builderGenerate(){
     document.getElementById('bld-hu-text').textContent = d.hu;
     document.getElementById('bld-tense-label').textContent = tenseName;
     document.getElementById('bld-type-label').textContent = typeLabels[sentType] || sentType;
+
+    // Igeidő képzése — csak az aktuális típus sora
+    var typePrefix = {positive:'(+)', negative:'(-)', question:'(?)'}[sentType];
+    var schemaLine = rmItem && rmItem.form
+      ? (rmItem.form.find(function(f){ return f.startsWith(typePrefix); }) || '')
+      : '';
+    var schemaEl = document.getElementById('bld-schema-line');
+    if(schemaEl) schemaEl.textContent = schemaLine;
 
     var chipsHtml = d.words.map(function(w){
       return '<span class="bld-word-chip">'+w+'</span>';
