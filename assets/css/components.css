@@ -1,0 +1,65 @@
+/* Újrafelhasználható komponensek: modal, level-picker, score, szint-gombok, stb. */
+
+/* Szint-választó */
+.level-picker{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.lvl-btn{display:flex;flex-direction:column;align-items:center;padding:7px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .15s;gap:1px}
+.lvl-btn span{font-size:.67rem;font-weight:400;color:var(--faint)}
+.lvl-btn:hover{border-color:var(--accent);color:var(--text)}
+.lvl-btn.active{border-color:var(--accent);background:rgba(138,94,42,.09);color:var(--accent)}
+
+/* Kiválasztott szavak sáv */
+.selected-bar{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:38px;padding:7px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);margin:8px 0}
+
+/* Generáló doboz */
+.gen-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;margin-bottom:1.2rem}
+.gen-box-title{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.8rem;display:flex;align-items:center;gap:6px}
+.gen-box-title span{background:var(--accent);color:#fff;font-size:.68rem;padding:2px 7px;border-radius:99px}
+.gen-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.gen-row textarea{flex:1;min-width:200px}
+.gen-level-row{display:flex;gap:5px;margin:8px 0}
+.gen-lvl-btn{padding:5px 12px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .15s}
+.gen-lvl-btn:hover{border-color:var(--accent);color:var(--text)}
+.gen-lvl-btn.active{border-color:var(--accent);background:rgba(138,94,42,.09);color:var(--accent)}
+
+/* Pontszám megjelenítő */
+.score-display{display:flex;align-items:baseline;gap:5px;margin-bottom:.8rem}
+.score-num{font-family:'Inter',sans-serif;font-size:2.8rem;color:var(--accent)}
+.score-denom{color:var(--muted);font-size:.95rem}
+.score-msg{color:var(--muted);font-size:.88rem;margin-left:8px}
+.positive-box{background:rgba(37,104,64,.07);border:1px solid rgba(37,104,64,.2);border-radius:var(--rs);padding:10px 13px;margin-bottom:.8rem}
+.positive-item{font-size:.84rem;color:var(--success);margin-bottom:3px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;border:1px solid var(--border);max-width:680px;width:100%;padding:2rem 2.2rem;position:relative;margin:auto}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-title{font-family:'Inter',sans-serif;font-size:1.5rem;color:var(--accent);margin-bottom:.25rem}
+.modal-level{display:inline-block;font-size:.75rem;margin-bottom:1rem}
+.modal-body h4{font-size:.68rem;font-weight:600;color:var(--accent2);margin:1.4rem 0 .5rem;text-transform:uppercase;letter-spacing:.08em}
+.modal-body p{font-size:.9rem;color:var(--muted);line-height:1.75;margin-bottom:.5rem}
+.example-block{background:var(--surface2);border-left:3px solid var(--accent);padding:.7rem 1rem;font-size:.87rem;margin:.4rem 0}
+.example-block .en{color:var(--text);font-style:italic}
+.example-block .hu{color:var(--muted);font-size:.82rem;margin-top:2px}
+.warning-box{background:rgba(168,48,48,.07);border:1px solid rgba(168,48,48,.2);border-radius:var(--rs);padding:.65rem .9rem;font-size:.83rem;color:var(--danger);margin:.5rem 0}
+.modal-status-row{display:flex;gap:7px;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.status-btn{padding:7px 15px;border-radius:var(--rs);border:1.5px solid var(--border2);background:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.83rem;font-weight:500;color:var(--muted);transition:all .15s}
+.status-btn:hover{border-color:var(--accent);color:var(--text)}
+.active-todo{border-color:var(--faint);color:var(--muted);background:var(--surface2)}
+.active-learning{border-color:var(--accent);color:var(--accent);background:rgba(138,94,42,.08)}
+.active-done{border-color:var(--accent2);color:var(--accent2);background:rgba(46,110,72,.08)}
+.modal-example{margin-bottom:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border)}
+.modal-example:last-child{border-bottom:none}
+.ex-en{font-size:.9rem;font-weight:500;color:var(--text);margin-bottom:.2rem}
+.ex-hu{font-size:.84rem;color:var(--muted)}
+.modal-warning{font-size:.86rem;color:var(--danger);background:rgba(192,57,43,.05);border:1px solid rgba(192,57,43,.15);border-radius:var(--rs);padding:.6rem .9rem;margin-top:.4rem;line-height:1.6}
+
+/* CEFR szint badge-ek */
+.cefr-pill{margin-right:6px}
+.cefr-badge{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:600;padding:4px 12px;border-radius:99px}
+.cefr-a1{background:rgba(46,110,72,.12);color:#1a5e38;border:1px solid rgba(46,110,72,.3)}
+.cefr-a2{background:rgba(45,95,128,.12);color:#1e4d6e;border:1px solid rgba(45,95,128,.3)}
+.cefr-b1{background:rgba(138,94,42,.12);color:#6b3d10;border:1px solid rgba(138,94,42,.3)}
+.cefr-b2{background:rgba(120,60,120,.12);color:#5e2a6e;border:1px solid rgba(120,60,120,.3)}
+.cefr-c1{background:rgba(168,48,48,.12);color:#7a1e1e;border:1px solid rgba(168,48,48,.3)}

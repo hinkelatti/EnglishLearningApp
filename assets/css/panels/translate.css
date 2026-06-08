@@ -1,0 +1,101 @@
+/* Fordítás, írás, üzleti, szövegértés, analyzer panel */
+
+/* Fordítás doboz */
+.translated-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:1.1rem 1.3rem;line-height:1.9;font-size:.93rem;min-height:70px}
+.word{cursor:pointer;border-radius:3px;padding:1px 2px;transition:background .12s}
+.word:hover{background:rgba(138,94,42,.15)}
+.word.selected{background:var(--accent);color:white}
+
+/* Írás / kétoszlopos elrendezés */
+.writing-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:.8rem}
+.writing-col-label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.col-badge{padding:2px 7px;border-radius:99px;font-size:.69rem;font-weight:500}
+.badge-en{background:rgba(45,95,128,.1);color:var(--accent3);border:1px solid rgba(45,95,128,.2)}
+.badge-hu{background:rgba(138,94,42,.1);color:var(--accent);border:1px solid rgba(138,94,42,.2)}
+.source-text{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;line-height:1.9;font-size:.92rem;min-height:180px;max-height:380px;overflow-y:auto}
+.source-text.empty{color:var(--faint);font-style:italic}
+textarea#writing-source{background:var(--surface2);border:1px solid var(--border);resize:vertical}
+
+/* Fordítás iránya */
+.writing-dir-row{display:flex;gap:8px;margin-bottom:1.2rem}
+.writing-dir-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.82rem;color:var(--muted);transition:all .15s}
+.writing-dir-btn:hover{border-color:var(--accent);color:var(--text)}
+.writing-dir-btn.active{border-color:var(--accent);background:rgba(138,94,42,.07);color:var(--accent);font-weight:500}
+.dir-flag{font-size:1rem}
+
+/* Generálás típusa és témák */
+.writing-type-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem;align-items:center}
+.writing-type-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.writing-type-label{font-size:.76rem;color:var(--muted);font-weight:500;white-space:nowrap}
+.writing-type-btn{padding:4px 12px;border:1.5px solid var(--border2);border-radius:99px;background:var(--surface);font-size:.78rem;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;color:var(--muted)}
+.writing-type-btn:hover{border-color:var(--accent);color:var(--accent)}
+.writing-type-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.gen-topic-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.5rem}
+.gen-topic-chip{padding:4px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:99px;cursor:pointer;font-size:.78rem;color:var(--muted);transition:all .15s}
+.gen-topic-chip:hover{border-color:var(--accent);color:var(--text)}
+.gen-topic-chip.selected{background:rgba(138,94,42,.1);border-color:var(--accent);color:var(--accent)}
+
+/* Javított szöveg és hibajelölés */
+.corrected-text-box{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:1rem}
+.corrected-text-label{font-size:.72rem;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.corrected-text-content{font-size:.88rem;line-height:1.7;color:var(--text)}
+.corr-group-header{font-size:.78rem;font-weight:600;color:var(--text);margin:1rem 0 .4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+/* Hibaelemek — a .typo/.grammar modifikátoros verzió a végleges */
+.corr-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem;margin-bottom:.6rem}
+.corr-item.typo{border-left:3px solid #f59e0b}
+.corr-item.grammar{border-left:3px solid var(--danger)}
+.corr-wrong{font-size:.9rem;color:var(--danger);margin-bottom:3px}
+.corr-right{font-size:.9rem;color:var(--success);font-weight:500;margin-bottom:4px}
+.corr-exp{font-size:.82rem;color:var(--muted);line-height:1.5}
+.corr-type{display:inline-block;font-size:.68rem;padding:1px 7px;border-radius:99px;font-weight:600;margin-bottom:5px}
+.corr-type-typo{background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.4)}
+.corr-type-grammar{background:rgba(168,48,48,.1);color:var(--danger);border:1px solid rgba(168,48,48,.2)}
+.corr-type-style{background:rgba(45,95,128,.1);color:var(--accent3);border:1px solid rgba(45,95,128,.2)}
+.grammar-rule-box{background:rgba(45,95,128,.05);border:1px solid rgba(45,95,128,.2);border-radius:var(--rs);padding:.7rem 1rem;margin-top:.5rem;font-size:.82rem;color:var(--text);line-height:1.6;display:none}
+.grammar-rule-btn{font-size:.75rem;color:var(--accent3);background:none;border:none;cursor:pointer;padding:3px 0;text-decoration:underline}
+
+/* Grammatika elemzés */
+.grammar-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;margin-bottom:10px}
+.grammar-name{font-weight:600;font-size:.93rem;margin-bottom:5px}
+.grammar-exp{font-size:.84rem;color:var(--muted);line-height:1.7;margin-bottom:8px}
+.grammar-example{padding:7px 13px;background:var(--surface2);border-left:3px solid var(--accent);font-style:italic;font-size:.87rem;margin-bottom:7px}
+.grammar-why{font-size:.77rem;color:var(--accent3);background:rgba(45,95,128,.07);border:1px solid rgba(45,95,128,.18);border-radius:var(--rs);padding:5px 9px}
+
+/* Üzleti írás */
+.uzl-task-box{background:var(--surface2);border:1px solid var(--accent);border-radius:var(--r);padding:.8rem 1rem;margin-bottom:.5rem}
+.uzl-task-label{font-size:.72rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.task-gen-row{margin-bottom:1rem}
+.task-gen-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.8rem 1rem;margin-top:.5rem;font-size:.86rem;line-height:1.7;color:var(--text)}
+
+/* Szövegértés */
+.comp-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.comp-col-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem}
+.comp-text-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.2rem;font-size:.88rem;line-height:1.8;color:var(--text);max-height:480px;overflow-y:auto;min-height:200px;width:100%;box-sizing:border-box}
+.comp-questions-col{display:flex;flex-direction:column}
+.comp-question-item{margin-bottom:1rem}
+.comp-question-text{font-size:.88rem;font-weight:500;color:var(--text);margin-bottom:.4rem;line-height:1.5}
+.comp-question-num{display:inline-block;width:20px;height:20px;background:var(--accent);color:#fff;border-radius:50%;font-size:.72rem;font-weight:700;text-align:center;line-height:20px;margin-right:6px;flex-shrink:0}
+.comp-answer-input{width:100%;padding:8px 12px;font-family:'Inter',sans-serif;font-size:.86rem;box-sizing:border-box}
+.comp-answer-input.correct{border-color:var(--success)!important;background:rgba(34,197,94,.06)}
+.comp-answer-input.wrong{border-color:var(--danger)!important;background:rgba(168,48,48,.06)}
+.comp-feedback{font-size:.78rem;margin-top:3px;line-height:1.4}
+.comp-score-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.5rem;margin-bottom:1rem}
+.comp-score-num{font-family:'Inter',sans-serif;font-size:2rem;color:var(--accent)}
+
+/* Analyzer (mondatelemző) */
+.analyzer-input-wrap{display:flex;flex-direction:column;gap:10px}
+.analyzer-lang-row{display:flex;gap:5px}
+.analyzer-lang-btn{padding:5px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:99px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--muted);transition:all .15s}
+.analyzer-lang-btn:hover{border-color:var(--accent);color:var(--text)}
+.analyzer-lang-btn.active{border-color:var(--accent);background:rgba(138,94,42,.08);color:var(--accent);font-weight:500}
+.analyze-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.3rem 1.5rem;margin-bottom:1rem}
+.analyze-translation{font-size:1rem;color:var(--text);line-height:1.6;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.analyze-translation-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.analyze-tense-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+.analyze-tense-en{font-family:'Inter',sans-serif;font-size:1.2rem;color:var(--accent)}
+.analyze-tense-hu{font-size:.85rem;color:var(--muted)}
+.analyze-section{margin-bottom:.9rem}
+.analyze-section h4{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.analyze-schema{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--accent3);background:rgba(45,95,128,.06);border:1px solid rgba(45,95,128,.15);border-radius:var(--rs);padding:.5rem .9rem;margin:.3rem 0;display:inline-block;line-height:1.6}
+.analyze-explanation{font-size:.88rem;color:var(--text);line-height:1.75}
+.analyze-why{background:rgba(138,94,42,.06);border-left:3px solid var(--accent);padding:.7rem 1rem;font-size:.86rem;color:var(--text);line-height:1.6;border-radius:0 var(--rs) var(--rs) 0}

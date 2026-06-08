@@ -1,0 +1,80 @@
+/* Oxford szótár, bulk generálás, XLSX import/export, Anki, kifejezések */
+
+/* Tabok */
+.ox-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.ox-tab{padding:8px 20px;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.ox-tab:hover{color:var(--text)}
+.ox-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ox-panel{display:none}
+.ox-panel.active{display:block}
+
+/* Összefoglaló / donutok */
+.ox-summary-row{display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center}
+.ox-pie-box{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.2rem;flex:1;min-width:130px;max-width:180px}
+.ox-pie-level{font-family:'DM Mono',monospace;font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.ox-pie-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.ox-pie-center{position:absolute;font-family:'Inter',sans-serif;font-size:1rem;font-weight:600;color:var(--text);pointer-events:none}
+.ox-pie-total{font-size:.75rem;color:var(--muted)}
+.ox-pie-mini{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+.ox-stat-mini{display:flex;justify-content:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.ox-mini-badge{font-size:.68rem;padding:2px 6px;border-radius:99px;font-weight:500}
+.ox-new{background:rgba(226,232,240,.4);color:#64748b;border:1px solid #cbd5e1}
+.ox-learning{background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.4)}
+.ox-active{background:rgba(34,197,94,.15);color:#16a34a;border:1px solid rgba(34,197,94,.4)}
+.ox-passive{background:rgba(59,130,246,.15);color:#2563eb;border:1px solid rgba(59,130,246,.4)}
+
+/* Grafikon / szintsor */
+.ox-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem;margin-bottom:1.5rem}
+.ox-level-bars{display:grid;gap:10px;margin-bottom:1.5rem}
+.ox-level-bar-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem}
+.ox-level-bar-label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:5px}
+.ox-bar-track{height:12px;background:var(--surface2);border-radius:99px;overflow:hidden;display:flex}
+.ox-bar-active{background:#22c55e;height:100%;transition:width .5s}
+.ox-bar-learning{background:#f59e0b;height:100%;transition:width .5s}
+.ox-bar-passive{background:#3b82f6;height:100%;transition:width .5s}
+.ox-bar-new{background:#e2e8f0;height:100%;transition:width .5s}
+
+/* Szűrők, szólista */
+.ox-filters{display:flex;gap:8px;margin-bottom:.8rem;flex-wrap:wrap}
+.ox-filters input{flex:1;min-width:160px;padding:8px 12px;font-size:.86rem}
+.ox-filters select{padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none}
+.ox-list-info{font-size:.8rem;color:var(--muted);margin-bottom:.5rem}
+.ox-gen-row{display:flex;align-items:center;gap:10px;margin-bottom:.8rem;padding:.7rem 1rem;background:rgba(138,94,42,.06);border:1px solid rgba(138,94,42,.2);border-radius:var(--rs);flex-wrap:wrap}
+
+/* Szólista táblázat — a vertical-top, white-nowrap verzió a végleges */
+.ox-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.ox-table th{text-align:left;padding:7px 10px;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);white-space:nowrap}
+.ox-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:.83rem}
+.ox-table tr:hover td{background:var(--surface2)}
+.ox-word-cell{font-weight:500;color:var(--accent)}
+.ox-word-cell .oxford-badge{font-size:.65rem;padding:1px 5px;border-radius:99px;background:rgba(45,95,128,.1);color:var(--accent3);border:1px solid rgba(45,95,128,.2);margin-left:4px;vertical-align:middle}
+.ox-status-select{padding:4px 8px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.78rem;outline:none;cursor:pointer}
+.ox-status-select.s-new{border-color:rgba(168,48,48,.4);color:var(--danger)}
+.ox-status-select.s-under{border-color:rgba(138,94,42,.4);color:var(--accent)}
+.ox-status-select.s-active{border-color:rgba(46,110,72,.4);color:var(--success)}
+.ox-status-select.s-passive{border-color:rgba(45,95,128,.4);color:var(--accent3)}
+.ox-card-btn{padding:3px 9px;font-size:.72rem;background:none;border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;color:var(--muted);transition:all .15s}
+.ox-card-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ox-card-btn.done{color:var(--success);border-color:rgba(46,110,72,.3)}
+.ox-field-empty{color:var(--faint);font-style:italic;font-size:.78rem}
+.ox-colloc-cell{font-size:.78rem;color:var(--accent3);max-width:220px}
+.ox-example-cell{font-size:.8rem;color:var(--muted);font-style:italic;max-width:250px}
+.ox-hu-cell{max-width:180px}
+
+/* Lapozó */
+.ox-pagination{display:flex;gap:5px;margin-top:1rem;flex-wrap:wrap;align-items:center}
+.ox-page-btn{padding:5px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.8rem;color:var(--muted);transition:all .15s}
+.ox-page-btn:hover{border-color:var(--accent);color:var(--text)}
+.ox-page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Import szekció */
+.ox-import-section{margin-bottom:1.2rem}
+.ox-section-label{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+
+/* Bulk előnézet */
+.bulk-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem;font-size:.84rem}
+.bulk-preview-title{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.7rem}
+.bulk-card-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.7rem 1rem;margin-bottom:6px}
+.bulk-card-en{font-weight:600;color:var(--accent);font-size:.9rem;margin-bottom:2px}
+.bulk-card-hu{font-size:.8rem;color:var(--muted)}
+.bulk-card-ex{font-size:.78rem;color:var(--faint);font-style:italic;margin-top:3px}

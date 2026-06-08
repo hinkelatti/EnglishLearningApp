@@ -1,0 +1,7 @@
+/* CSS változók, reset, scrollbar */
+:root{--bg:#f2f4f6;--surface:#ffffff;--surface2:#e8ecf0;--border:#dde1e7;--border2:#c8cfd8;--text:#1e2128;--muted:#5c6470;--faint:#96a0ad;--accent:#d4752a;--accent2:#3a7fbf;--accent3:#5a9fd4;--danger:#c0392b;--success:#2e7d52;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}

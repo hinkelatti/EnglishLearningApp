@@ -1,0 +1,225 @@
+/* Elrendezés: header, nav, main, panelek, tabok, reszponzív */
+
+/* App váz */
+#app{display:none;flex-direction:column;min-height:100vh}
+
+/* Fejléc */
+header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 2rem;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;gap:12px;flex-wrap:wrap}
+.logo{font-family:'Inter',sans-serif;font-size:1.25rem;color:var(--accent);white-space:nowrap}
+.logo span{color:var(--muted);font-size:.78rem;font-family:'Inter',sans-serif;margin-left:8px}
+.header-right{display:flex;align-items:center;gap:8px}
+.card-counter{font-size:.78rem;color:var(--accent2);background:rgba(46,110,72,.08);padding:4px 12px;border-radius:99px;border:1px solid rgba(46,110,72,.2)}
+.key-btn{padding:5px 11px;background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--muted);cursor:pointer;font-size:.78rem;font-family:'Inter',sans-serif}
+.key-btn:hover{color:var(--text)}
+
+/* Navigáció */
+nav{display:flex;gap:4px;align-items:center}
+.nav-btn{padding:7px 16px;background:none;border:1px solid transparent;border-radius:var(--rs);color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;transition:all .18s;white-space:nowrap}
+.nav-btn:hover{color:var(--text);border-color:var(--border2)}
+.nav-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(138,94,42,.07)}
+.nav-dropdown{position:relative;display:inline-flex}
+.nav-dropdown-btn{padding:7px 16px;background:none;border:1px solid transparent;border-radius:var(--rs);color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.nav-dropdown-btn:hover{color:var(--text);border-color:var(--border2)}
+.nav-dropdown-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(138,94,42,.07)}
+.nav-dropdown-btn .arrow{font-size:.6rem;transition:transform .18s;opacity:.5;pointer-events:none}
+.nav-dropdown-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.1);min-width:150px;z-index:300;padding:4px;white-space:nowrap}
+.nav-dropdown-menu.open{display:block}
+.nav-sub-btn{display:block;width:100%;padding:8px 14px;background:none;border:none;border-radius:var(--rs);color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;text-align:left;transition:all .15s}
+.nav-sub-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-sub-btn.active{color:var(--accent);font-weight:500}
+.nav-divider{height:1px;background:var(--border);margin:3px 0}
+
+/* Tartalom terület */
+main{flex:1;padding:2rem;max-width:960px;margin:0 auto;width:100%}
+.panel{display:none}
+.panel.active{display:block}
+
+/* Sub-tabok */
+.sub-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.sub-tab{padding:8px 20px;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.sub-tab:hover{color:var(--text)}
+.sub-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sub-panel{display:none}
+.sub-panel.active{display:block}
+
+/* ============================================================
+   RESZPONZÍV — alap (max 600px + max 680px + max 700px)
+   ============================================================ */
+@media(max-width:680px){.writing-cols{grid-template-columns:1fr}}
+@media(max-width:700px){.comp-layout{grid-template-columns:1fr}}
+@media(max-width:600px){.ox-summary-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.convo-cols{grid-template-columns:1fr}}
+
+/* Alap 600px reszponzív (nem nav/header specifikus) */
+@media(max-width:600px){
+  header{flex-direction:column;gap:8px;padding:1rem}
+  nav{flex-wrap:wrap;justify-content:center}
+  main{padding:1rem}
+  .vocab-stats{grid-template-columns:repeat(3,1fr)}
+  .field{grid-template-columns:1fr;gap:1px}
+  .grammar-grid{grid-template-columns:1fr 1fr}
+}
+
+/* ============================================================
+   MOBIL — álló tájolás (portrait, max 600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  main { padding: .8rem; }
+  .panel { padding: 0; }
+
+  .sub-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; gap: 4px; margin-bottom: .8rem; }
+  .sub-tabs::-webkit-scrollbar { display: none; }
+  .sub-tab { padding: 5px 10px; font-size: .76rem; white-space: nowrap; flex-shrink: 0; }
+
+  .tense-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 4px; }
+  .tense-tabs::-webkit-scrollbar { display: none; }
+  .tense-tab { padding: 5px 10px; font-size: .76rem; white-space: nowrap; flex-shrink: 0; }
+
+  .progress-stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .progress-stat-box { padding: .6rem .5rem; }
+  .progress-stat-num { font-size: 1.3rem; }
+  .progress-stat-label { font-size: .65rem; }
+
+  .writing-cols { grid-template-columns: 1fr; gap: .8rem; }
+  .writing-col-label { font-size: .78rem; }
+
+  .grammar-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .grammar-box { padding: .6rem .7rem; }
+  .grammar-box-title-en { font-size: .82rem; }
+  .grammar-box-sub { font-size: .68rem; }
+
+  .convo-col { min-height: 160px; }
+
+  .ref-layout { grid-template-columns: 1fr; gap: .5rem; }
+  .ref-sidebar { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: .8rem; }
+  .ref-panels { margin-top: .5rem; }
+  .ref-open-panel { padding: 1rem; }
+
+  .modal { padding: 1.2rem; margin: 1rem; width: calc(100% - 2rem); max-width: none; }
+  .modal-title { font-size: 1rem; }
+
+  .ox-table-wrap { overflow-x: auto; }
+  .ox-table td, .ox-table th { font-size: .76rem; padding: 5px 6px; }
+  .phrase-table-wrap { overflow-x: auto; }
+
+  .ex-card { padding: 1rem; }
+  .ex-card-header { flex-wrap: wrap; gap: 4px; }
+  .ex-sentence-row { flex-wrap: wrap; gap: 4px; }
+  .ex-sentence-input { min-width: 120px; font-size: .88rem; }
+  .ex-choices { gap: 6px; }
+  .ex-choice-btn { padding: 8px 10px; font-size: .84rem; }
+
+  .tense-chip { padding: 5px 10px; font-size: .76rem; }
+  .tc-name { font-size: .78rem; }
+
+  .writing-type-row { gap: 8px; }
+  .writing-type-btn { padding: 4px 9px; font-size: .75rem; }
+  .uzl-task-box { padding: .7rem .9rem; }
+
+  .bld-task-card { padding: 1rem; }
+  .bld-hu-text { font-size: .92rem; }
+  .bld-word-chip { font-size: .78rem; padding: 4px 10px; }
+  .builder-settings { gap: 8px; }
+
+  .tutor-box { margin-top: 1rem; }
+  .tutor-messages { max-height: 240px; }
+  .tutor-bubble { font-size: .84rem; max-width: 92%; }
+  .tutor-input-row { flex-wrap: wrap; gap: 6px; }
+  .tutor-input { font-size: .84rem; }
+  .tutor-send { width: 100%; }
+
+  .comp-layout { grid-template-columns: 1fr; }
+
+  .score-display { flex-wrap: wrap; gap: 8px; }
+  .score-num { font-size: 2rem; }
+
+  .weekly-activity-row { gap: 4px; }
+  .weekly-day-bar { flex: 1; min-width: 0; }
+
+  .error-pattern-item { padding: .7rem; }
+
+  .doc-tabs { flex-wrap: wrap; gap: 4px; }
+  .doc-tab { padding: 5px 10px; font-size: .76rem; }
+
+  .row { flex-wrap: wrap; gap: 6px; }
+  .btn { padding: 7px 14px; font-size: .84rem; }
+  .btn-sm { padding: 5px 10px; font-size: .76rem; }
+
+  .section-title { font-size: 1.1rem; }
+  .section-sub { font-size: .82rem; }
+
+  .corr-item { padding: .5rem .7rem; }
+  .corrected-text-box { padding: .7rem .9rem; }
+
+  .import-row { flex-wrap: wrap; gap: 8px; }
+  #gr-reference-list { max-height: 220px; overflow-y: auto; }
+  .band-label { flex-wrap: wrap; gap: 4px; }
+}
+
+/* ============================================================
+   EXTRA KIS KÉPERNYŐ (max 380px)
+   ============================================================ */
+@media (max-width: 380px) {
+  .grammar-grid { grid-template-columns: 1fr 1fr; }
+  .progress-stats-row { grid-template-columns: repeat(2, 1fr); }
+  .nav-btn, .nav-dropdown-btn { padding: 5px 8px; font-size: .74rem; }
+  .tense-chip { padding: 4px 8px; font-size: .73rem; }
+  .btn { padding: 6px 12px; font-size: .82rem; }
+}
+
+/* ============================================================
+   HEADER + NAV MOBILON
+   ============================================================ */
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    align-items: center;
+    padding: .6rem .8rem .3rem;
+    gap: 2px;
+  }
+  .logo {
+    font-size: 1rem;
+    text-align: center;
+    width: 100%;
+    padding-bottom: 4px;
+  }
+  nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 2px 0 4px;
+    justify-content: flex-start;
+    width: 100%;
+    order: 2;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .nav-btn, .nav-dropdown-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 6px 11px;
+    font-size: .79rem;
+  }
+  .header-right {
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 0 2px;
+    flex-wrap: wrap;
+  }
+  .header-badges {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 0 2px;
+    flex-wrap: wrap;
+  }
+  .card-counter { font-size: .75rem; padding: 3px 10px; }
+  .key-btn { font-size: .75rem; padding: 3px 10px; }
+  .progress-stat-num { font-size: 1.25rem; }
+  .progress-stat-label { font-size: .62rem; letter-spacing: .04em; }
+  .progress-stat-box { padding: .55rem .4rem; }
+}

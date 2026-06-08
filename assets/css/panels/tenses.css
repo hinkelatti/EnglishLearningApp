@@ -1,0 +1,188 @@
+/* Igeidők, mondatszerkesztő, nyelvtan-referencia, gyakorló-motor, tanulási asszisztens */
+
+/* Igeidő tabok */
+.tense-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.tense-tab{padding:8px 18px;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.87rem;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tense-tab:hover{color:var(--text)}
+.tense-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tpanel{display:none}
+.tpanel.active{display:block}
+
+/* Igeidő chip-választó (a margin-bottom:1.2rem-es verzió a végleges) */
+.tense-group{margin-bottom:1.2rem}
+.tense-group-header{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.tense-group-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.tense-group-items{display:flex;flex-wrap:wrap;gap:6px}
+.tense-chips{display:flex;flex-wrap:wrap;gap:6px}
+.tense-chip{padding:6px 12px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.82rem;font-family:'Inter',sans-serif;transition:all .15s;user-select:none;min-width:80px}
+.tense-chip:hover{border-color:var(--accent);background:rgba(138,94,42,.05)}
+.tense-chip.chip-tense{border-color:rgba(58,127,191,.4);background:rgba(58,127,191,.07);color:var(--accent2)}
+.tense-chip.chip-tense:hover{border-color:var(--accent2);background:rgba(58,127,191,.12)}
+.tense-chip.chip-tense.selected{background:rgba(58,127,191,.15);border-color:var(--accent2);color:var(--accent2);font-weight:600}
+.tense-chip.chip-grammar.selected{background:rgba(138,94,42,.12);border-color:var(--accent);color:var(--accent);font-weight:600}
+.tense-chip.selected{background:rgba(138,94,42,.12);border-color:var(--accent);color:var(--accent)}
+.tense-chip .tc-name{font-weight:500}
+.tense-chip .tc-badge{font-size:.68rem;color:var(--muted);margin-top:2px}
+.tc-badge{font-size:.68rem;color:var(--accent);margin-top:2px}
+.tense-select-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:1.2rem}
+
+/* Igeidő checkbox-ok (régi igeidő-gyakorló) */
+.tense-chk{display:flex;align-items:center;gap:5px;padding:7px 14px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.84rem;color:var(--muted);transition:all .15s;user-select:none;flex-direction:column;align-items:flex-start;gap:2px}
+.tense-chk-en{font-size:.84rem;font-weight:600;color:var(--text);line-height:1.2}
+.tense-chk-hu{font-size:.72rem;color:var(--faint);line-height:1.2}
+.tense-chk.selected .tense-chk-en{color:var(--accent)}
+.tense-chk.selected .tense-chk-hu{color:var(--accent);opacity:.7}
+.tense-chk .tense-biz-dot{align-self:flex-start}
+.tense-chk.biz{border-color:rgba(138,94,42,.35);background:rgba(138,94,42,.04)}
+.tense-chk.biz:hover{border-color:var(--accent)}
+.tense-chk.selected.biz{border-color:var(--accent);background:rgba(138,94,42,.12);color:var(--accent)}
+.tense-chk:hover{border-color:var(--accent);color:var(--text)}
+.tense-chk.selected{border-color:var(--accent);background:rgba(138,94,42,.08);color:var(--accent);font-weight:500}
+.tense-chk input{display:none}
+.tense-biz-dot{color:var(--accent);font-size:.85rem;line-height:1}
+.tense-legend{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:4px}
+
+/* Feladatkártya */
+.ex-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem 1.6rem;margin-bottom:1rem}
+.ex-card-header{display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.ex-tense-block{margin-top:2rem;padding-top:1.2rem;border-top:2px solid var(--border2)}
+.ex-section-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+.ex-hu-text{font-size:1.05rem;font-weight:500;color:var(--text);line-height:1.55;margin-bottom:.2rem}
+.ex-tense-row{display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap}
+.ex-tense-badge{font-size:.78rem;padding:5px 13px;border-radius:99px;font-weight:600;background:rgba(138,94,42,.1);color:var(--accent);border:1px solid rgba(138,94,42,.3);white-space:nowrap}
+.ex-schema-pill{font-family:'DM Mono',monospace;font-size:.78rem;padding:4px 11px;border-radius:var(--rs);background:var(--surface2);color:var(--muted);border:1px solid var(--border2)}
+.ex-why-box{background:rgba(37,104,64,.06);border:1px solid rgba(37,104,64,.18);border-radius:var(--rs);padding:.65rem 1rem;font-size:.84rem;color:var(--accent2);line-height:1.6;margin:.4rem 0}
+.ex-why-quote{font-size:1.1rem;margin-right:4px;opacity:.5}
+.ex-sentence-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:.4rem}
+.ex-sentence-part{font-size:1rem;color:var(--text);line-height:1.6}
+.ex-sentence-input{flex:1;min-width:140px;max-width:260px;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.95rem;outline:none;transition:border .18s}
+.ex-sentence-input:focus{border-color:var(--accent)}
+.ex-sentence-input.correct{border-color:var(--success);background:rgba(37,104,64,.06)}
+.ex-sentence-input.wrong{border-color:var(--danger);background:rgba(168,48,48,.06)}
+.ex-hint{font-size:.78rem;color:var(--faint);font-family:'DM Mono',monospace;margin-bottom:.8rem}
+.ex-feedback{margin-top:.8rem;padding:.65rem 1rem;border-radius:var(--rs);font-size:.86rem;line-height:1.6;display:none}
+.ex-feedback.correct{background:rgba(37,104,64,.08);border:1px solid rgba(37,104,64,.22);color:var(--success)}
+.ex-feedback.wrong{background:rgba(168,48,48,.08);border:1px solid rgba(168,48,48,.22);color:var(--danger)}
+.ex-nav{display:flex;gap:8px;margin-top:1rem;align-items:center;flex-wrap:wrap}
+.ex-counter{font-size:.8rem;color:var(--muted);margin-left:auto}
+.ex-score-good{color:var(--success);font-weight:500}
+.ex-source-sentence{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem;font-size:.95rem;line-height:1.7;margin:.5rem 0}
+.ex-textarea{width:100%;min-height:80px;box-sizing:border-box;font-size:.92rem;resize:vertical;margin-top:.4rem}
+.ex-choices{display:flex;flex-direction:column;gap:8px;margin-top:.8rem}
+.ex-choice-btn{text-align:left;padding:.7rem 1rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.88rem;font-family:'Inter',sans-serif;transition:all .15s}
+.ex-choice-btn:hover:not(:disabled){background:rgba(138,94,42,.06);border-color:var(--accent)}
+.ex-choice-btn.correct{background:rgba(34,197,94,.1);border-color:var(--success);color:var(--success)}
+.ex-choice-btn.wrong{background:rgba(168,48,48,.1);border-color:var(--danger);color:var(--danger)}
+.ex-explanation{font-size:.78rem;color:var(--muted);margin-top:.3rem;font-weight:400}
+.error-word{cursor:pointer;padding:2px 4px;border-radius:3px;border:1px solid transparent;margin:1px;display:inline-block;transition:all .15s}
+.error-word:hover{background:rgba(138,94,42,.08);border-color:var(--accent)}
+.error-word.selected{background:rgba(168,48,48,.1);border-color:var(--danger);color:var(--danger)}
+
+/* Nyelvtan referencia (összefoglaló layout) */
+.ref-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem;min-height:400px;align-items:start}
+.ref-sidebar{border-right:1px solid var(--border);padding-right:1rem}
+.ref-sidebar-filters{display:flex;flex-direction:column;gap:6px;margin-bottom:.8rem}
+.ref-select{padding:5px 7px;font-size:.78rem;border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface);color:var(--text);width:100%}
+.ref-group-label{font-size:.68rem;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;padding:.6rem 0 .2rem;border-top:1px solid var(--border);margin-top:.4rem}
+.ref-group-label:first-child{border-top:none;margin-top:0}
+.ref-row{display:flex;align-items:flex-start;gap:8px;padding:.4rem .5rem;border-radius:var(--rs);cursor:pointer;transition:background .12s}
+.ref-row:hover{background:var(--surface2)}
+.ref-row.active{background:var(--surface2);outline:1px solid var(--accent)}
+.ref-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.ref-dot-todo{background:var(--border2)}
+.ref-dot-learning{background:var(--accent2)}
+.ref-dot-done{background:var(--success)}
+.ref-row-text{min-width:0}
+.ref-row-en{font-size:.83rem;font-weight:500;color:var(--text);line-height:1.3}
+.ref-row-hu{font-size:.72rem;color:var(--muted);line-height:1.3}
+.ref-panels{display:flex;flex-direction:column;gap:1rem}
+.ref-open-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem}
+.ref-open-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.2rem}
+.ref-open-title{font-size:1rem;font-weight:600;color:var(--text)}
+.ref-open-sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+.ref-open-close{background:none;border:none;font-size:1rem;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0}
+.ref-open-close:hover{color:var(--text)}
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:4px}
+.ref-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.8rem;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.ref-box:hover{border-color:var(--accent);background:var(--surface2)}
+.ref-box.active{border-color:var(--accent);background:var(--surface2)}
+.ref-box.status-done{border-color:rgba(46,125,82,.3)}
+.ref-box.status-learning{border-color:rgba(58,127,191,.3)}
+.ref-box-status{font-size:.8rem;margin-bottom:.3rem}
+.ref-box-name{font-size:.88rem;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:.2rem}
+.ref-box-sub{font-size:.73rem;color:var(--muted);line-height:1.4}
+.ref-box-hist{font-size:.7rem;color:var(--faint);margin-top:.3rem}
+.ref-expand{grid-column:1/-1;background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:1.4rem 1.6rem;margin-top:2px}
+
+/* Régi ref-card (tense panel accordion) */
+.ref-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:.5rem}
+.ref-card-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;padding:.8rem 1rem;transition:background .15s}
+.ref-card-header:hover{background:var(--surface2)}
+/* A display:none+.open verzió a végleges ref-card-body */
+.ref-card-body{display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.ref-card-body.open{display:block}
+.ref-card.ref-card-biz{border-color:rgba(138,94,42,.3);background:rgba(138,94,42,.02)}
+.ref-card.ref-card-biz .ref-card-header{border-left:3px solid var(--accent);padding-left:.8rem;margin-left:-.8rem}
+.ref-card-title{font-family:'Inter',sans-serif;font-size:1.1rem;color:var(--accent)}
+.ref-card-badge{font-size:.72rem;padding:3px 10px;border-radius:99px;font-family:'DM Mono',monospace;font-weight:600}
+.ref-title-wrap{display:flex;flex-direction:column;gap:1px}
+.ref-card-title-hu{font-size:.75rem;color:var(--muted);font-family:'Inter',sans-serif;font-weight:400}
+.ref-section{margin-bottom:.9rem}
+.ref-section h4{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.ref-section p{font-size:.86rem;color:var(--text);line-height:1.75}
+.ref-schema{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--accent3);background:rgba(45,95,128,.06);border:1px solid rgba(45,95,128,.15);border-radius:var(--rs);padding:.5rem .8rem;margin:.3rem 0;display:inline-block}
+.ref-examples{display:grid;gap:5px}
+.ref-example{font-size:.84rem;color:var(--muted);padding:5px 9px;background:var(--surface2);border-radius:var(--rs)}
+.ref-example strong{color:var(--text)}
+.ref-explanation{font-size:.86rem;color:var(--muted);line-height:1.6;margin-bottom:.5rem}
+.ref-arrow{font-size:.72rem;color:var(--muted)}
+.ref-filter-row{display:flex;gap:8px;margin-top:.5rem}
+.ref-group{margin-bottom:1.5rem}
+.ref-group-header{display:flex;align-items:center;gap:10px;margin-bottom:.7rem}
+.ref-group-biz-note{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+.ref-biz-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;padding:2px 8px;border-radius:99px;background:rgba(138,94,42,.1);color:var(--accent);border:1px solid rgba(138,94,42,.25);font-weight:500}
+
+/* Roadmap kártya részletes nézet (rm-*) */
+.rm-section{margin-bottom:1.4rem}
+.rm-section-label{font-size:.68rem;font-weight:600;color:var(--accent2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem}
+.rm-section-body{font-size:.9rem;color:var(--text);line-height:1.75}
+.rm-form-table{border-radius:var(--rs);overflow:hidden;margin-top:.2rem}
+.rm-form-row{padding:.45rem .7rem;font-size:.84rem;font-family:'DM Mono',monospace;line-height:1.5;background:var(--surface2);border-bottom:1px solid var(--border)}
+.rm-form-row:last-child{border-bottom:none}
+.rm-form-pos{background:rgba(46,125,82,.06);color:#1e6640}
+.rm-form-neg{background:rgba(192,57,43,.06);color:#a32a20}
+.rm-form-q{background:rgba(58,127,191,.06);color:var(--accent2)}
+.rm-signals{display:flex;flex-wrap:wrap;gap:5px;margin-top:.2rem}
+.rm-signal-chip{font-size:.78rem;padding:4px 11px;background:var(--surface2);border:1px solid var(--border2);border-radius:99px;color:var(--muted)}
+.rm-contrast{font-size:.88rem;color:var(--muted);line-height:1.75;padding:.7rem .9rem;background:var(--surface2);border-left:2px solid var(--border2);border-radius:0 var(--rs) var(--rs) 0;margin-top:.2rem}
+
+/* To (igeidő összehasonlítás) */
+.to-hint-wrap{margin:.8rem 0 .4rem}
+.to-hint-btn{background:none;border:1px solid var(--border2);border-radius:var(--rs);padding:.4rem .8rem;font-size:.78rem;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;width:100%;text-align:left}
+.to-hint-btn:hover{border-color:var(--accent);color:var(--accent)}
+#to-hint-body{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem;margin-top:.4rem}
+
+/* Tanulási asszisztens (tutor) */
+.tutor-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-top:1.5rem;overflow:hidden}
+.tutor-header{padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:.7rem}
+.tutor-title{font-size:.9rem;font-weight:600;color:var(--text)}
+.tutor-sub{font-size:.76rem;color:var(--muted)}
+.tutor-messages{min-height:80px;max-height:320px;overflow-y:auto;padding:.8rem 1rem;display:flex;flex-direction:column;gap:.6rem}
+.tutor-bubble{max-width:85%;font-size:.87rem;line-height:1.65;padding:.55rem .85rem;border-radius:12px}
+.tutor-bubble-user{align-self:flex-end;background:var(--accent);color:#fff;border-radius:12px 12px 2px 12px}
+.tutor-bubble-assistant{align-self:flex-start;background:var(--surface2);color:var(--text);border-radius:2px 12px 12px 12px}
+.tutor-bubble-thinking{align-self:flex-start;background:var(--surface2);color:var(--muted);border-radius:2px 12px 12px 12px;font-size:.82rem;letter-spacing:.1em}
+.tutor-input-row{display:flex;gap:8px;padding:.7rem 1rem;border-top:1px solid var(--border);align-items:flex-end}
+.tutor-input{flex:1;resize:none;font-size:.86rem;padding:.5rem .7rem;border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface);color:var(--text);font-family:'Inter',sans-serif}
+.tutor-input:focus{outline:none;border-color:var(--accent)}
+.tutor-send{flex-shrink:0;align-self:flex-end}
+
+/* Mondatszerkesztő */
+.builder-settings{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
+.bld-task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem;margin-top:1rem}
+.bld-task-meta{display:flex;gap:8px;align-items:center;margin-bottom:.8rem}
+.bld-type-badge{font-size:.76rem;padding:3px 10px;background:rgba(58,127,191,.08);border:1px solid rgba(58,127,191,.2);border-radius:99px;color:var(--accent2)}
+.bld-hu-text{font-size:1rem;font-weight:500;color:var(--text);line-height:1.6;margin-bottom:1rem;padding:.7rem .9rem;background:var(--surface2);border-radius:var(--rs)}
+.bld-words-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem}
+.bld-word-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.5rem}
+.bld-word-chip{padding:5px 13px;background:var(--surface);border:1.5px solid var(--accent2);border-radius:99px;font-size:.84rem;font-weight:500;color:var(--accent2);font-family:'DM Mono',monospace}
