@@ -3,3 +3,8 @@ compatibility_date = "2026-06-08"
 
 [assets]
 directory = "."
+
+[[d1_databases]]
+binding     = "DB"
+database_name = "englishlearningapp-db"
+database_id = "d7b2aa1a-2ffd-434a-9408-d1c5a50b6630"
