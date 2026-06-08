@@ -31,6 +31,59 @@ var oxPage = 0, OX_PAGE_SIZE = 50;
 var genLevel = 'B1';
 
 // ============================================================
+// SZINKRON TÁROLÓ — localStorage cache + Cloudflare D1 write-through
+// ============================================================
+var Store = (function(){
+  var _timers = {};
+  var DEBOUNCE = 1500;
+
+  function _token(){ return localStorage.getItem('sync_token') || ''; }
+
+  function get(key, fallback){
+    var raw = localStorage.getItem(key);
+    if(raw === null) return fallback !== undefined ? fallback : null;
+    try { return JSON.parse(raw); } catch(e){ return fallback !== undefined ? fallback : null; }
+  }
+
+  function set(key, val){
+    localStorage.setItem(key, JSON.stringify(val));
+    localStorage.setItem(key + '__ts', String(Date.now()));
+    clearTimeout(_timers[key]);
+    _timers[key] = setTimeout(function(){ _push(key, val); }, DEBOUNCE);
+  }
+
+  function _push(key, val){
+    var token = _token();
+    if(!token) return;
+    fetch('/api/store', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer ' + token},
+      body: JSON.stringify({key: key, value: JSON.stringify(val), updated_at: Date.now()})
+    }).catch(function(){});
+  }
+
+  // Induláskor lekéri a szerver adatait; ha újabb a helyi verziónál, felülírja localStorage-ban
+  function pull(){
+    var token = _token();
+    if(!token) return Promise.resolve();
+    return fetch('/api/store', {headers:{'Authorization':'Bearer ' + token}})
+      .then(function(r){ return r.json(); })
+      .then(function(rows){
+        rows.forEach(function(row){
+          var localTs = parseInt(localStorage.getItem(row.key + '__ts') || '0', 10);
+          if(row.updated_at > localTs){
+            localStorage.setItem(row.key, row.value);
+            localStorage.setItem(row.key + '__ts', String(row.updated_at));
+          }
+        });
+      })
+      .catch(function(){});
+  }
+
+  return {get: get, set: set, pull: pull};
+})();
+
+// ============================================================
 // CORE UTILITIES
 // ============================================================
 
@@ -989,6 +1042,7 @@ function changeKey(){
 }
 
 function launchApp(){
+  Store.pull(); // D1-ből szinkronizál, nem blokkoló — builder nyitása előtt végez
   oxLoad();
   initProgressPanel();
   renderRoadmap();
@@ -1584,7 +1638,7 @@ function setBldType(type, el){
   bldSentType = type;
   document.querySelectorAll('[id^="bld-type-"]').forEach(function(b){ b.classList.remove('active'); });
   if(el) el.classList.add('active');
-  localStorage.setItem('bld_sent_type', type);
+  Store.set('bld_sent_type', type);
 }
 
 function toggleBldMeta(){
@@ -1604,7 +1658,7 @@ function initBuilderTenseSelect(){
   wrap.dataset.built = '1';
 
   // Mentett szelekció visszaállítása
-  var saved = JSON.parse(localStorage.getItem('bld_selected_tenses') || '[]');
+  var saved = Store.get('bld_selected_tenses', []);
   bldSelectedTenses = new Set(saved);
 
   // Szintenként csoportosított igeidők
@@ -1638,7 +1692,7 @@ function initBuilderTenseSelect(){
           bldSelectedTenses.add(item.id);
           chip.classList.add('selected');
         }
-        localStorage.setItem('bld_selected_tenses', JSON.stringify(Array.from(bldSelectedTenses)));
+        Store.set('bld_selected_tenses', Array.from(bldSelectedTenses));
         updateBldTenseSummary();
       };
       row.appendChild(chip);
@@ -1658,7 +1712,7 @@ function initBuilderTenseSelect(){
   updateBldTenseSummary();
 
   // Mentett típus visszaállítása
-  var savedSentType = localStorage.getItem('bld_sent_type');
+  var savedSentType = Store.get('bld_sent_type', null);
   if(savedSentType){
     var typeMap = {positive:'pos', negative:'neg', question:'q', any:'any'};
     var sBtn = document.getElementById('bld-type-' + (typeMap[savedSentType] || 'any'));
@@ -1671,7 +1725,7 @@ function bldSelectAllTenses(){
     var id = c.getAttribute('data-id');
     if(id){ bldSelectedTenses.add(id); c.classList.add('selected'); }
   });
-  localStorage.setItem('bld_selected_tenses', JSON.stringify(Array.from(bldSelectedTenses)));
+  Store.set('bld_selected_tenses', Array.from(bldSelectedTenses));
   updateBldTenseSummary();
 }
 
@@ -1680,7 +1734,7 @@ function bldClearTenses(){
   document.querySelectorAll('#bld-tense-picker [data-id]').forEach(function(c){
     c.classList.remove('selected');
   });
-  localStorage.setItem('bld_selected_tenses', '[]');
+  Store.set('bld_selected_tenses', []);
   updateBldTenseSummary();
 }
 
