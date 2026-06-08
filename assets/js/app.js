@@ -1561,7 +1561,7 @@ document.addEventListener('keydown', function(e){
 // MONDATSZERKESZTÉS MODUL
 // ============================================================
 var bldTenseMode = 'any';    // 'any' | 'pick'
-var bldSentType = 'positive'; // 'positive' | 'negative' | 'question' | 'any'
+var bldSentType = 'any';     // 'positive' | 'negative' | 'question' | 'any'
 var bldCurrentTask = null;   // {hu, answer, tense, type, words}
 
 function setBldTense(mode, el){
@@ -1572,20 +1572,31 @@ function setBldTense(mode, el){
   if(el) el.classList.add('active');
   var picker = document.getElementById('bld-tense-picker');
   if(picker) picker.style.display = mode === 'pick' ? 'block' : 'none';
+  localStorage.setItem('bld_tense_mode', mode);
 }
 
 function setBldType(type, el){
   bldSentType = type;
   document.querySelectorAll('[id^="bld-type-"]').forEach(function(b){ b.classList.remove('active'); });
   if(el) el.classList.add('active');
+  localStorage.setItem('bld_sent_type', type);
+}
+
+function toggleBldMeta(){
+  var meta = document.getElementById('bld-task-meta');
+  var btn = document.getElementById('bld-meta-toggle');
+  if(!meta) return;
+  var visible = meta.style.display !== 'none';
+  meta.style.display = visible ? 'none' : 'flex';
+  if(btn) btn.textContent = visible ? '▾ Igeidő / Típus' : '▴ Igeidő / Típus';
 }
 
 var bldSelectedTenses = new Set();
 
 function initBuilderTenseSelect(){
   var wrap = document.getElementById('bld-tense-chips');
-  if(!wrap || wrap.children.length > 0) return;
-  ROADMAP.forEach(function(band){
+  if(wrap && wrap.children.length === 0){
+    ROADMAP.forEach(function(band){
     band.items.forEach(function(item){
       var ex = GRAMMAR_EXERCISES[item.id];
       if(!ex || ex.category !== 'tense') return;
@@ -1606,6 +1617,19 @@ function initBuilderTenseSelect(){
       wrap.appendChild(chip);
     });
   });
+  }
+  // Mentett beállítások visszaállítása
+  var savedTenseMode = localStorage.getItem('bld_tense_mode');
+  var savedSentType  = localStorage.getItem('bld_sent_type');
+  if(savedTenseMode){
+    var tBtn = document.getElementById(savedTenseMode === 'any' ? 'bld-tense-any' : 'bld-tense-pick');
+    setBldTense(savedTenseMode, tBtn);
+  }
+  if(savedSentType){
+    var typeMap = {positive:'pos', negative:'neg', question:'q', any:'any'};
+    var sBtn = document.getElementById('bld-type-' + (typeMap[savedSentType] || 'any'));
+    setBldType(savedSentType, sBtn);
+  }
 }
 
 function bldSelectAllTenses(){
@@ -1628,6 +1652,10 @@ async function builderGenerate(){
   show('bld-loading');
   document.getElementById('bld-result').innerHTML = '';
   document.getElementById('bld-task-card').style.display = 'none';
+  var metaEl = document.getElementById('bld-task-meta');
+  if(metaEl) metaEl.style.display = 'none';
+  var metaBtn = document.getElementById('bld-meta-toggle');
+  if(metaBtn) metaBtn.textContent = '▾ Igeidő / Típus';
 
   // Pick tense
   var tenseId = '';

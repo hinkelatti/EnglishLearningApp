@@ -774,10 +774,10 @@
           </div>
           <div class="writing-type-group">
             <span class="writing-type-label">Típus:</span>
-            <button class="writing-type-btn active" id="bld-type-pos" onclick="setBldType('positive',this)">Állítás</button>
+            <button class="writing-type-btn" id="bld-type-pos" onclick="setBldType('positive',this)">Állítás</button>
             <button class="writing-type-btn" id="bld-type-neg" onclick="setBldType('negative',this)">Tagadás</button>
             <button class="writing-type-btn" id="bld-type-q" onclick="setBldType('question',this)">Kérdés</button>
-            <button class="writing-type-btn" id="bld-type-any" onclick="setBldType('any',this)">Vegyes</button>
+            <button class="writing-type-btn active" id="bld-type-any" onclick="setBldType('any',this)">Vegyes</button>
           </div>
         </div>
 
@@ -795,7 +795,8 @@
 
         <!-- Feladat kártya -->
         <div id="bld-task-card" class="bld-task-card" style="display:none">
-          <div class="bld-task-meta">
+          <button id="bld-meta-toggle" onclick="toggleBldMeta()" style="background:none;border:none;cursor:pointer;font-size:.78rem;color:var(--muted);padding:0 0 .5rem 0;display:block">▾ Igeidő / Típus</button>
+          <div class="bld-task-meta" id="bld-task-meta" style="display:none">
             <span class="cefr-pill" id="bld-tense-label">—</span>
             <span class="bld-type-badge" id="bld-type-label">—</span>
           </div>
