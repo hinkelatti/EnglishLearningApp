@@ -1,4 +1,5 @@
 // Cloudflare Worker belépőpont — API útvonalak + statikus asset kiszolgálás
+// v2 — secrets aktívak (ANTHROPIC_API_KEY, SYNC_TOKEN)
 
 export default {
   async fetch(request, env) {
