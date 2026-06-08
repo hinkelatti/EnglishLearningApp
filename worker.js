@@ -5,6 +5,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/api/ping') {
+      if (!checkAuth(request, env)) return new Response('Unauthorized', { status: 401 });
+      return new Response('ok', { status: 200 });
+    }
     if (url.pathname === '/api/claude') {
       return handleClaude(request, env);
     }

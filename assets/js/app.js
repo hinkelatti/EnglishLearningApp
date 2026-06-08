@@ -960,9 +960,22 @@ async function claude(system, user, maxTokens){
 // ============================================================
 // API KEY & LAUNCH
 // ============================================================
-function saveKey(){
+async function saveKey(){
   var k = document.getElementById('api-input').value.trim();
   if(!k){ alert('Adj meg egy belépési kódot!'); return; }
+  var btn = document.querySelector('#api-screen .btn-gold');
+  btn.disabled = true; btn.textContent = 'Ellenőrzés...';
+  try {
+    var r = await fetch('/api/ping', { headers: { 'Authorization': 'Bearer ' + k } });
+    if(r.status === 401){
+      document.getElementById('key-err').style.display = 'block';
+      return;
+    }
+  } catch(e) {
+    alert('Nem sikerült elérni a szervert. Ellenőrizd az internetkapcsolatot.'); return;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Belépés';
+  }
   apiKey = k;
   localStorage.setItem('sync_token', k);
   document.getElementById('api-screen').style.display = 'none';
