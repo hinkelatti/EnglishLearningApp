@@ -12,7 +12,7 @@ var apiKey = '', trText = '', huText = '', selWords = new Set();
 var selectedLevel = 'B1', genLevel = 'B1', genDir = 'en', trOutLang = 'en';
 var writingDir = 'en-hu', genSelectedTopic = '';
 var writingType = 'general', emailTone = 'formal';
-var allCards = JSON.parse(localStorage.getItem('anki_cards') || '[]');
+var allCards = Store.get('anki_cards', []);
 var oxWords = [], oxPhrases = [];
 var exState = 'idle';
 var currentExIdx = 0, exScore = {correct:0, total:0}, exerciseQueue = [];
@@ -2802,6 +2802,12 @@ function oxLoad(){
     // Ha nincs __ts, az adat régi (csak localStorage, soha nem ment D1-be) — most migráljuk
     if(!localStorage.getItem('oxford_words__ts')) oxSave();
   }
+  // allCards auto-migrate: ha van localStorage-ban de még nem szinkronizált D1-be
+  var storedCards = localStorage.getItem('anki_cards');
+  if(storedCards && !localStorage.getItem('anki_cards__ts')){
+    allCards = JSON.parse(storedCards);
+    Store.set('anki_cards', allCards);
+  }
   oxPhraseLoad();
   return oxWords.length > 0;
 }
@@ -3044,7 +3050,7 @@ async function ankiSync(){
         status:       (f.Status       ||{}).value || ''
       });
     });
-    localStorage.setItem('anki_cards', JSON.stringify(allCards));
+    Store.set('anki_cards', allCards);
     renderOxWordlist();
     renderPhrases();
     result.innerHTML='<div class="ok-box">Szinkronizáció kész! '+updated+' státusz frissítve, '+unchanged+' változatlan, '+notFound+' Oxford szó nincs még Ankiban. '+allCards.length+' kártya betöltve.</div>';
@@ -3313,7 +3319,7 @@ function oxImportAnki(input){
 function oxClearData(){
   if(!confirm('Biztosan törlöd az összes Oxford adatot? Ez nem vonható vissza.')) return;
   oxWords=[]; oxPhrases=[]; oxSave(); oxPhraseSave();
-  localStorage.removeItem('anki_cards'); allCards=[];
+  allCards=[]; Store.set('anki_cards', []);
   renderVocabDashboard();
 }
 
@@ -3325,7 +3331,7 @@ function toggleBackup(){
 }
 
 // CARDS
-function saveCards(){ localStorage.setItem('anki_cards',JSON.stringify(allCards)); }
+function saveCards(){ Store.set('anki_cards', allCards); }
 
 
 function updateWritingLabels(){
