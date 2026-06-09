@@ -879,6 +879,8 @@ function launchApp(){
       var tabBtn = document.getElementById('tense-tab-' + tabName);
       showTenseTab(tabName, tabBtn);
     }
+    // Oxford adatok D1-ből szinkronizált értékek betöltése a memóriába
+    oxLoad();
   });
   updateHardModeBtn();
   oxLoad();
@@ -2800,8 +2802,9 @@ function oxLoad(){
   return oxWords.length>0;
 }
 
-function oxSave(){ localStorage.setItem('oxford_words',JSON.stringify(oxWords)); }
-function oxPhraseSave(){ localStorage.setItem('oxford_phrases',JSON.stringify(oxPhrases)); }
+// Store.set = localStorage + debounced D1 write-through → szinkronizál más eszközökre is
+function oxSave(){ Store.set('oxford_words', oxWords); }
+function oxPhraseSave(){ Store.set('oxford_phrases', oxPhrases); }
 function oxPhraseLoad(){ var s=localStorage.getItem('oxford_phrases'); if(s) oxPhrases=JSON.parse(s); }
 
 function oxGetCounts(){

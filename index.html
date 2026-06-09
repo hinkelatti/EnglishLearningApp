@@ -518,72 +518,6 @@
           </div>
         </div>
 
-        <hr class="divider"/>
-
-        <!-- TÖMEGES KÁRTYAFELTÖLTÉS -->
-        <div class="ox-import-section">
-          <div class="ox-section-label">Tömeges kártyafeltöltés Ankiba</div>
-          <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem">
-            Szintenként generálja le a <strong>new</strong> státuszú Oxford szavak Anki kártyáit és tölti fel közvetlenül az Ankiba (AnkiConnect). Kötegenként 10 szó, ellenőrzéssel.
-          </p>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
-            <select id="bulk-level-select" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
-              <option value="A1">A1</option><option value="A2">A2</option>
-              <option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option>
-            </select>
-            <select id="bulk-status-select" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
-              <option value="new">New státuszú szavak</option>
-              <option value="under learning">Under learning státuszú</option>
-            </select>
-            <button class="btn btn-gold" id="btn-bulk-start" onclick="bulkStartLevel()">Indítás</button>
-          </div>
-          <div id="bulk-progress-wrap" style="display:none">
-            <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:4px">
-              <span id="bulk-progress-label">0 / 0 szó feldolgozva</span>
-              <span id="bulk-progress-pct">0%</span>
-            </div>
-            <div style="height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:1rem">
-              <div id="bulk-progress-bar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .3s"></div>
-            </div>
-            <div id="bulk-batch-preview" style="display:none"></div>
-            <div class="row" style="margin-top:.8rem">
-              <button class="btn btn-outline btn-sm" id="btn-bulk-approve" style="display:none"></button>
-              <button class="btn btn-outline btn-sm" id="btn-bulk-skip" style="display:none"></button>
-              <button class="btn btn-outline btn-sm" id="btn-bulk-stop" onclick="bulkStop()" style="display:none;color:var(--danger)">&#x25A0; Leállítás</button>
-            </div>
-            <div id="bulk-gen-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> <span id="bulk-gen-status">Generálás...</span></div>
-            <div id="bulk-result"></div>
-          </div>
-        </div>
-
-        <hr class="divider"/>
-
-        <!-- TÖMEGES KIFEJEZÉS-FELTÖLTÉS -->
-        <div class="ox-import-section">
-          <div class="ox-section-label">Tömeges kifejezés-feltöltés Ankiba</div>
-          <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem">Szintenként generálja le a <strong>new</strong> státuszú Oxford kifejezések Anki kártyáit és tölti fel közvetlenül az Ankiba. Deck: English C1::Phrases A1 stb.</p>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
-            <select id="phrase-bulk-level" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
-              <option value="A1">A1</option><option value="A2">A2</option>
-              <option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option>
-            </select>
-            <button class="btn btn-gold" id="btn-phrase-bulk" onclick="phraseBulkStart()">Feltöltés Ankiba</button>
-            <button class="btn btn-outline btn-sm" id="btn-phrase-stop" onclick="phraseStop()" style="display:none;color:var(--danger)">&#x25A0; Leállítás</button>
-            <span id="phrase-bulk-status" style="font-size:.82rem;color:var(--muted)"></span>
-          </div>
-          <div id="phrase-bulk-progress" style="display:none">
-            <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:3px">
-              <span id="phrase-prog-label">0 / 0</span><span id="phrase-prog-pct">0%</span>
-            </div>
-            <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:.5rem">
-              <div id="phrase-prog-bar" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
-            </div>
-          </div>
-          <div id="phrase-bulk-result"></div>
-        </div>
-
-        <hr class="divider"/>
-
         <!-- BEÁLLÍTÁSOK / EGYSZERI MŰVELETEK -->
         <div class="ox-import-section">
           <div class="ox-section-label" style="cursor:pointer;display:flex;align-items:center;gap:8px" onclick="toggleBackup()">
@@ -612,6 +546,70 @@
                 <span id="phrase-xls-status" style="font-size:.83rem;color:var(--muted)"></span>
               </div>
             </div>
+
+            <hr class="divider" style="margin:1rem 0"/>
+
+            <!-- TÖMEGES KÁRTYAFELTÖLTÉS -->
+            <div style="margin-bottom:1rem">
+              <div class="ox-section-label" style="font-size:.72rem;margin-bottom:.5rem">Tömeges kártyafeltöltés Ankiba</div>
+              <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem">
+                Szintenként generálja le a <strong>new</strong> státuszú Oxford szavak Anki kártyáit és tölti fel közvetlenül az Ankiba (AnkiConnect). Kötegenként 10 szó, ellenőrzéssel.
+              </p>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
+                <select id="bulk-level-select" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
+                  <option value="A1">A1</option><option value="A2">A2</option>
+                  <option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option>
+                </select>
+                <select id="bulk-status-select" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
+                  <option value="new">New státuszú szavak</option>
+                  <option value="under learning">Under learning státuszú</option>
+                </select>
+                <button class="btn btn-gold" id="btn-bulk-start" onclick="bulkStartLevel()">Indítás</button>
+              </div>
+              <div id="bulk-progress-wrap" style="display:none">
+                <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:4px">
+                  <span id="bulk-progress-label">0 / 0 szó feldolgozva</span>
+                  <span id="bulk-progress-pct">0%</span>
+                </div>
+                <div style="height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:1rem">
+                  <div id="bulk-progress-bar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .3s"></div>
+                </div>
+                <div id="bulk-batch-preview" style="display:none"></div>
+                <div class="row" style="margin-top:.8rem">
+                  <button class="btn btn-outline btn-sm" id="btn-bulk-approve" style="display:none"></button>
+                  <button class="btn btn-outline btn-sm" id="btn-bulk-skip" style="display:none"></button>
+                  <button class="btn btn-outline btn-sm" id="btn-bulk-stop" onclick="bulkStop()" style="display:none;color:var(--danger)">&#x25A0; Leállítás</button>
+                </div>
+                <div id="bulk-gen-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> <span id="bulk-gen-status">Generálás...</span></div>
+                <div id="bulk-result"></div>
+              </div>
+            </div>
+
+            <!-- TÖMEGES KIFEJEZÉS-FELTÖLTÉS -->
+            <div style="margin-bottom:1rem">
+              <div class="ox-section-label" style="font-size:.72rem;margin-bottom:.5rem">Tömeges kifejezés-feltöltés Ankiba</div>
+              <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem">Szintenként generálja le a <strong>new</strong> státuszú Oxford kifejezések Anki kártyáit és tölti fel közvetlenül az Ankiba. Deck: English C1::Phrases A1 stb.</p>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
+                <select id="phrase-bulk-level" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
+                  <option value="A1">A1</option><option value="A2">A2</option>
+                  <option value="B1">B1</option><option value="B2">B2</option><option value="C1">C1</option>
+                </select>
+                <button class="btn btn-gold" id="btn-phrase-bulk" onclick="phraseBulkStart()">Feltöltés Ankiba</button>
+                <button class="btn btn-outline btn-sm" id="btn-phrase-stop" onclick="phraseStop()" style="display:none;color:var(--danger)">&#x25A0; Leállítás</button>
+                <span id="phrase-bulk-status" style="font-size:.82rem;color:var(--muted)"></span>
+              </div>
+              <div id="phrase-bulk-progress" style="display:none">
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:3px">
+                  <span id="phrase-prog-label">0 / 0</span><span id="phrase-prog-pct">0%</span>
+                </div>
+                <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:.5rem">
+                  <div id="phrase-prog-bar" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
+                </div>
+              </div>
+              <div id="phrase-bulk-result"></div>
+            </div>
+
+            <hr class="divider" style="margin:1rem 0"/>
 
             <div style="margin-bottom:1rem">
               <div class="ox-section-label" style="font-size:.72rem;margin-bottom:.5rem">Anki CSV export (backup)</div>
