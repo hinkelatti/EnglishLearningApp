@@ -54,12 +54,17 @@
 .daily-task-text{font-size:.88rem;line-height:1.5}
 .daily-task-tag{font-size:.72rem;padding:2px 8px;background:rgba(138,94,42,.1);color:var(--accent);border-radius:99px;margin-left:6px}
 
-/* Heti aktivitás grafikon */
+/* Heti aktivitás grafikon — halmozott (kék: app, narancs: Anki) */
 .weekly-chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem}
-.weekly-activity-row{display:flex;gap:8px;align-items:flex-end;height:60px}
-.weekly-day-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
-.weekly-day-fill{width:100%;background:var(--accent);border-radius:3px 3px 0 0;opacity:.7;min-height:3px;transition:height .3s}
+.weekly-activity-row{display:flex;gap:6px;align-items:flex-end;height:60px}
+.weekly-day-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.weekly-bar-stack{display:flex;flex-direction:column-reverse;width:100%;gap:0}
+.weekly-app-fill{width:100%;background:var(--accent2);transition:height .3s}
+.weekly-anki-fill{width:100%;background:var(--accent);border-radius:3px 3px 0 0;transition:height .3s}
 .weekly-day-label{font-size:.68rem;color:var(--muted)}
+.wdl-today{color:var(--accent);font-weight:700}
+.weekly-legend{display:flex;gap:14px;margin-top:.8rem;font-size:.72rem;color:var(--muted);align-items:center}
+.wleg-dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
 
 /* Heti napló */
 .weekly-log-new{margin-bottom:1rem}

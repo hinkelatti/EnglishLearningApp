@@ -446,15 +446,20 @@ function renderProgressOverview() {
   var errEl = document.getElementById('stat-errors');
   if (errEl) errEl.textContent = activeErrors || '0';
 
-  // Sessions this week
-  var sessions = JSON.parse(localStorage.getItem('weekly_sessions') || '[]');
+  // Heti tanulási percek összesítése
   var weekStart = getWeekStart();
-  var weekSessions = sessions.filter(function(s) { return s.date >= weekStart; }).length;
+  var timeData = JSON.parse(localStorage.getItem('learning_time') || '{}');
+  var weekMin = 0;
+  for(var i = 0; i < 7; i++){
+    var wd = new Date(weekStart + 'T00:00:00'); wd.setDate(wd.getDate() + i);
+    var wds = wd.toISOString().slice(0, 10);
+    if(timeData[wds]) weekMin += Math.round((timeData[wds].app + timeData[wds].anki) / 60);
+  }
   var sessEl = document.getElementById('stat-sessions');
-  if (sessEl) sessEl.textContent = weekSessions || '0';
+  if(sessEl) sessEl.textContent = weekMin || '0';
 
-  // Weekly activity bars
-  renderWeeklyActivity(sessions);
+  // Halmozott heti aktivitás-diagramm
+  renderWeeklyActivity();
 }
 
 function getWeekStart() {
@@ -465,36 +470,85 @@ function getWeekStart() {
   return d.toISOString().slice(0, 10);
 }
 
-function logSession() {
-  var sessions = JSON.parse(localStorage.getItem('weekly_sessions') || '[]');
+// Tanulási idő mentése (másodperc) — 'app' vagy 'anki' típusra
+function addLearningTime(type, seconds) {
+  if(seconds < 5 || seconds > 7200) return; // 5mp alatt / 2 óra felett ignoráljuk
   var today = new Date().toISOString().slice(0, 10);
-  var todayEntry = sessions.find(function(s) { return s.date === today; });
-  if (!todayEntry) {
-    sessions.push({ date: today, count: 1 });
-  } else {
-    todayEntry.count++;
-  }
-  localStorage.setItem('weekly_sessions', JSON.stringify(sessions));
+  var data = JSON.parse(localStorage.getItem('learning_time') || '{}');
+  if(!data[today]) data[today] = {app: 0, anki: 0};
+  data[today][type] = (data[today][type] || 0) + seconds;
+  localStorage.setItem('learning_time', JSON.stringify(data));
 }
 
-function renderWeeklyActivity(sessions) {
+// Panel-alapú időmérő — csak tanulási panelokon méri az időt
+var _panelTimer = {
+  panel: null, start: null,
+  PANELS: ['translate', 'oxford', 'convo', 'tenses'],
+  begin: function(name) {
+    this.stop();
+    if(this.PANELS.indexOf(name) > -1) { this.panel = name; this.start = Date.now(); }
+  },
+  stop: function() {
+    if(this.panel && this.start) {
+      addLearningTime('app', Math.floor((Date.now() - this.start) / 1000));
+    }
+    this.panel = null; this.start = null;
+  },
+  pause: function() {
+    if(this.panel && this.start) {
+      addLearningTime('app', Math.floor((Date.now() - this.start) / 1000));
+      this.start = null;
+    }
+  },
+  resume: function() { if(this.panel) this.start = Date.now(); }
+};
+
+function renderWeeklyActivity() {
   var wrap = document.getElementById('weekly-activity');
-  if (!wrap) return;
+  if(!wrap) return;
   var days = ['H', 'K', 'Sz', 'Cs', 'P', 'Szo', 'V'];
   var weekStart = getWeekStart();
+  var timeData = JSON.parse(localStorage.getItem('learning_time') || '{}');
+  var todayStr = new Date().toISOString().slice(0, 10);
+
+  // Maximális perc skálázáshoz
+  var maxMin = 0;
+  for(var i = 0; i < 7; i++){
+    var d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + i);
+    var ds = d.toISOString().slice(0, 10);
+    var e = timeData[ds] || {app:0, anki:0};
+    var tot = Math.round((e.app + e.anki) / 60);
+    if(tot > maxMin) maxMin = tot;
+  }
+  if(maxMin < 10) maxMin = 30; // minimum skála 30 perc
+
+  var BAR_MAX = 50; // px
   var html = '';
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    var dateStr = d.toISOString().slice(0, 10);
-    var entry = sessions.find(function(s) { return s.date === dateStr; });
-    var count = entry ? entry.count : 0;
-    var height = Math.min(count * 15, 50);
-    var isToday = dateStr === new Date().toISOString().slice(0, 10);
-    html += '<div class="weekly-day-bar">'
-      + '<div class="weekly-day-fill" style="height:' + Math.max(height, 3) + 'px;'
-      + (isToday ? 'opacity:1;background:var(--success)' : count > 0 ? 'opacity:.7' : 'opacity:.2') + '"></div>'
-      + '<div class="weekly-day-label">' + days[i] + '</div>'
+  for(var i = 0; i < 7; i++){
+    var d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + i);
+    var ds = d.toISOString().slice(0, 10);
+    var isToday = ds === todayStr;
+    var e = timeData[ds] || {app:0, anki:0};
+    var appMin  = Math.round(e.app  / 60);
+    var ankiMin = Math.round(e.anki / 60);
+    var appH  = appMin  > 0 ? Math.max(4, Math.round(appMin  / maxMin * BAR_MAX)) : 0;
+    var ankiH = ankiMin > 0 ? Math.max(4, Math.round(ankiMin / maxMin * BAR_MAX)) : 0;
+    var isEmpty = appH === 0 && ankiH === 0;
+    // App-fill felső sarka lekerekített ha nincs felette Anki-fill
+    var appRadius = ankiH > 0 ? '0' : '3px 3px 0 0';
+    var opacity = isToday ? '1' : '.75';
+    var tooltip = (!isEmpty) ? 'App: '+appMin+' p  |  Anki: '+ankiMin+' p' : '';
+    html += '<div class="weekly-day-bar" title="'+tooltip+'">'
+      + '<div class="weekly-bar-stack">'
+      // column-reverse → első elem (app) alul, második (anki) felül
+      + (appH > 0
+          ? '<div class="weekly-app-fill" style="height:'+appH+'px;opacity:'+opacity+';border-radius:'+appRadius+'"></div>'
+          : (isEmpty ? '<div class="weekly-app-fill" style="height:3px;opacity:.15;border-radius:3px 3px 0 0"></div>' : ''))
+      + (ankiH > 0
+          ? '<div class="weekly-anki-fill" style="height:'+ankiH+'px;opacity:'+opacity+'"></div>'
+          : '')
+      + '</div>'
+      + '<div class="weekly-day-label'+(isToday?' wdl-today':'')+'">'+days[i]+'</div>'
       + '</div>';
   }
   wrap.innerHTML = html;
@@ -908,6 +962,12 @@ function launchApp(){
     renderPhrases();
   });
   updateHardModeBtn();
+  // Böngésző háttérbe kerüléskor a timer megáll, előtérbe jövéskor folytatódik
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) _panelTimer.pause(); else _panelTimer.resume();
+  });
+  // Oldal bezárásakor is elmentjük az eltelt időt
+  window.addEventListener('beforeunload', function(){ _panelTimer.stop(); });
   oxLoad();
   initProgressPanel();
   renderRoadmap();
@@ -958,6 +1018,7 @@ function toggleDropdown(id){
 }
 
 function showMain(name, el){
+  _panelTimer.begin(name); // tanulási idő mérése panelváltáskor
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn,.nav-dropdown-btn,.nav-sub-btn').forEach(function(b){ b.classList.remove('active'); });
   var panel = document.getElementById('panel-'+name);
@@ -3078,6 +3139,35 @@ async function ankiSync(){
     Store.set('anki_cards', allCards);
     renderOxWordlist();
     renderPhrases();
+    // Anki review idők lekérése heti bontásban
+    status.textContent='Review idők lekérése...';
+    try {
+      var weekStartMs = new Date(getWeekStart() + 'T00:00:00').getTime();
+      var reviewTimes = {};
+      for(var ri=0; ri<cardIds.length; ri+=200){
+        var rchunk = cardIds.slice(ri, ri+200);
+        var reviews = await ankiRequest('getReviewsOfCards', {cards: rchunk});
+        if(reviews){
+          Object.values(reviews).forEach(function(cardReviews){
+            cardReviews.forEach(function(r){
+              if(r.id >= weekStartMs){
+                var rDate = new Date(r.id).toISOString().slice(0,10);
+                reviewTimes[rDate] = (reviewTimes[rDate]||0) + Math.floor((r.time||0)/1000);
+              }
+            });
+          });
+        }
+      }
+      if(Object.keys(reviewTimes).length){
+        var ltData = JSON.parse(localStorage.getItem('learning_time')||'{}');
+        Object.keys(reviewTimes).forEach(function(date){
+          if(!ltData[date]) ltData[date]={app:0,anki:0};
+          ltData[date].anki = reviewTimes[date];
+        });
+        localStorage.setItem('learning_time', JSON.stringify(ltData));
+      }
+    } catch(re){ console.warn('Review idők lekérése sikertelen:', re); }
+    initProgressPanel();
     result.innerHTML='<div class="ok-box">Szinkronizáció kész! '+updated+' státusz frissítve, '+unchanged+' változatlan, '+notFound+' Oxford szó nincs még Ankiban. '+allCards.length+' kártya betöltve.</div>';
   } catch(e){
     result.innerHTML='<div class="err">Hiba: '+(e.message||'Ismeretlen hiba')+'</div>';
