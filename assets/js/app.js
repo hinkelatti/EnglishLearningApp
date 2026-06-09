@@ -12,7 +12,7 @@ var apiKey = '', trText = '', huText = '', selWords = new Set();
 var selectedLevel = 'B1', genLevel = 'B1', genDir = 'en', trOutLang = 'en';
 var writingDir = 'en-hu', genSelectedTopic = '';
 var writingType = 'general', emailTone = 'formal';
-var allCards = Store.get('anki_cards', []);
+var allCards = JSON.parse(localStorage.getItem('anki_cards') || '[]');
 var oxWords = [], oxPhrases = [];
 var exState = 'idle';
 var currentExIdx = 0, exScore = {correct:0, total:0}, exerciseQueue = [];
