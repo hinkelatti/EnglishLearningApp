@@ -185,6 +185,8 @@
 .builder-settings{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
 .bld-task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem;margin-top:1rem}
 .bld-task-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:.8rem}
+.bld-schema-line{font-size:.78rem;color:var(--muted);font-family:monospace;background:var(--surface2);padding:.3rem .6rem;border-radius:4px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:640px){.bld-schema-line{flex:none;width:100%;white-space:normal;overflow:visible;text-overflow:unset}}
 .bld-tense-use{width:100%;font-size:.76rem;color:var(--muted);line-height:1.5;margin-top:.1rem}
 .bld-type-badge{font-size:.76rem;padding:3px 10px;background:rgba(58,127,191,.08);border:1px solid rgba(58,127,191,.2);border-radius:99px;color:var(--accent2)}
 .bld-hu-text{font-size:1rem;font-weight:500;color:var(--text);line-height:1.6;margin-bottom:1rem;padding:.7rem .9rem;background:var(--surface2);border-radius:var(--rs)}
