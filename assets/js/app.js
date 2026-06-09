@@ -80,7 +80,28 @@ var Store = (function(){
       .catch(function(){});
   }
 
-  return {get: get, set: set, pull: pull};
+  // Az összes fontos kulcs azonnali (nem debounced) D1 push-ja
+  function pushAll(onDone){
+    var token = _token();
+    if(!token){ if(onDone) onDone(0); return; }
+    var keys = ['oxford_words','oxford_phrases','anki_cards',
+                'practice_hard_mode','active_main','active_tense_tab'];
+    var pending = 0;
+    keys.forEach(function(k){
+      var raw = localStorage.getItem(k);
+      if(raw === null) return;
+      pending++;
+      fetch('/api/store', {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer ' + token},
+        body: JSON.stringify({key: k, value: raw, updated_at: Date.now()})
+      }).then(function(){ pending--; if(pending===0 && onDone) onDone(keys.length); })
+        .catch(function(){ pending--; if(pending===0 && onDone) onDone(keys.length); });
+    });
+    if(pending===0 && onDone) onDone(0);
+  }
+
+  return {get: get, set: set, pull: pull, pushAll: pushAll};
 })();
 
 // ============================================================
@@ -3332,6 +3353,18 @@ function toggleBackup(){
   var arrow=document.getElementById('backup-arrow');
   if(section){ section.style.display=section.style.display==='none'?'block':'none'; }
   if(arrow){ arrow.style.transform=section&&section.style.display==='block'?'rotate(180deg)':''; }
+}
+
+// Azonnali felhő szinkron — az összes helyi adat D1-be push-olása
+function forcePushAll(){
+  var btn=document.getElementById('btn-force-push');
+  var status=document.getElementById('force-push-status');
+  if(btn){ btn.disabled=true; btn.textContent='Mentés...'; }
+  if(status){ status.textContent=''; }
+  Store.pushAll(function(count){
+    if(btn){ btn.disabled=false; btn.textContent='☁ Adatok mentése felhőbe'; }
+    if(status){ status.textContent='✓ Szinkronizálva! Az adatok más eszközökön is elérhetők.'; }
+  });
 }
 
 // CARDS

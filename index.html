@@ -492,6 +492,18 @@
       <div id="ox-import" class="ox-panel">
         <div class="section-title">Import / Export</div>
 
+        <!-- FELHŐ SZINKRON -->
+        <div class="ox-import-section" style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div class="ox-section-label">Eszközök közötti szinkron</div>
+          <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem">
+            Ha más eszközön (pl. mobilon) nem jelennek meg az adatok, nyomj ide — az összes helyi adat azonnal feltöltődik a felhőbe.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-gold" id="btn-force-push" onclick="forcePushAll()">☁ Adatok mentése felhőbe</button>
+            <span id="force-push-status" style="font-size:.83rem;color:var(--success)"></span>
+          </div>
+        </div>
+
         <!-- ANKICONNECT SZINKRONIZÁCIÓ -->
         <div class="ox-import-section">
           <div class="ox-section-label">AnkiConnect szinkronizáció</div>
