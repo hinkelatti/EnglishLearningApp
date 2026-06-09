@@ -1456,12 +1456,36 @@ function tutorSend(){
   tutorGetReply(msg);
 }
 
+// Mini markdown → HTML renderer (csak asszisztens válaszokhoz)
+function renderMd(text){
+  var s = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); // XSS védelem
+  // Headings → félkövér blokk
+  s = s.replace(/^### (.+)$/gm,'<strong class="md-h3">$1</strong>');
+  s = s.replace(/^## (.+)$/gm,'<strong class="md-h2">$1</strong>');
+  s = s.replace(/^# (.+)$/gm,'<strong class="md-h1">$1</strong>');
+  // Bold + italic kombináció előbb
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+  // Inline code
+  s = s.replace(/`([^`\n]+)`/g,'<code class="md-code">$1</code>');
+  // Listaelemek
+  s = s.replace(/^[-*]\s+(.+)$/gm,'<li>$1</li>');
+  s = s.replace(/(<li>.*<\/li>(\n|$))+/g,'<ul class="md-ul">$&</ul>');
+  // Bekezdések (kettős újsor)
+  s = s.split('\n\n').map(function(p){ return '<p class="md-p">'+p+'</p>'; }).join('');
+  // Maradék újsor
+  s = s.replace(/\n/g,'<br>');
+  return s;
+}
+
 function tutorAddBubble(role, text){
   var wrap = document.getElementById('tutor-messages');
   if(!wrap) return;
   var div = document.createElement('div');
   div.className = 'tutor-bubble tutor-bubble-' + role;
-  div.innerHTML = text.replace(/\n/g,'<br>');
+  div.innerHTML = role === 'assistant' ? renderMd(text) : text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }

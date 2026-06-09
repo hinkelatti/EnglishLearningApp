@@ -177,6 +177,17 @@
 .tutor-input:focus{outline:none;border-color:var(--accent)}
 .tutor-send{flex-shrink:0;align-self:flex-end}
 
+/* Markdown rendering az asszisztens válaszaiban */
+.tutor-bubble-assistant .md-p{margin:.35rem 0}
+.tutor-bubble-assistant .md-p:first-child{margin-top:0}
+.tutor-bubble-assistant .md-p:last-child{margin-bottom:0}
+.tutor-bubble-assistant .md-h1{display:block;font-size:1rem;margin:.5rem 0 .2rem}
+.tutor-bubble-assistant .md-h2{display:block;font-size:.95rem;margin:.45rem 0 .15rem}
+.tutor-bubble-assistant .md-h3{display:block;font-size:.9rem;margin:.35rem 0 .1rem}
+.tutor-bubble-assistant .md-ul{margin:.3rem 0 .3rem 1.1rem;padding:0;list-style:disc}
+.tutor-bubble-assistant .md-ul li{margin:.15rem 0}
+.tutor-bubble-assistant .md-code{background:rgba(0,0,0,.08);padding:.1rem .35rem;border-radius:3px;font-size:.85em;font-family:monospace}
+
 /* Nehéz mód kapcsoló */
 .hard-mode-bar{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
 .hard-mode-desc{font-size:.76rem;color:var(--muted)}
