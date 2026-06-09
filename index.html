@@ -727,13 +727,16 @@
     <div id="panel-tenses" class="panel">
       <div class="tense-tabs">
         <button class="tense-tab active" id="tense-tab-practice" onclick="showTenseTab('practice',this)">Gyakorlás</button>
-        <button class="tense-tab" id="tense-tab-tenses" onclick="showTenseTab('tenses',this)">Igeidők</button>
         <button class="tense-tab" id="tense-tab-builder" onclick="showTenseTab('builder',this)">Mondatszerkesztés</button>
         <button class="tense-tab" id="tense-tab-reference" onclick="showTenseTab('reference',this)">Összefoglaló</button>
       </div>
       <div id="tpanel-practice" class="tpanel active">
         <div class="section-title">Nyelvtani gyakorló</div>
         <div class="section-sub">Válaszd ki a gyakorolni kívánt témákat, majd old meg a feladatokat.</div>
+        <div class="hard-mode-bar">
+          <button class="writing-type-btn" id="hard-mode-btn" onclick="toggleHardMode()">🔒 Nehéz mód</button>
+          <span class="hard-mode-desc" id="hard-mode-desc">Az igeidő neve és szintje látható</span>
+        </div>
         <div id="tense-select-grid" class="tense-select-grid"></div>
         <div class="row" style="margin-bottom:1.5rem">
           <button class="btn btn-gold" id="btn-start-ex" onclick="startExercises()">Gyakorlás indítása</button>
@@ -744,21 +747,6 @@
           <div id="ex-card-wrap"></div>
         </div>
         <div id="ex-empty" style="display:none;padding:2rem;text-align:center;color:var(--faint)">Válassz legalább egy igeidőt a fenti listából!</div>
-      </div>
-      <!-- IGEIDOK GYAKORLO -->
-      <div id="tpanel-tenses" class="tpanel">
-        <div class="section-title">Igeidő gyakorló</div>
-        <div class="section-sub">Válaszd ki az igeidőket — kitalálod magad melyiket kell használni.</div>
-        <div id="tense-only-grid" class="tense-select-grid"></div>
-        <div class="row" style="margin-bottom:1.5rem">
-          <button class="btn btn-gold" onclick="startTenseOnly()">Gyakorlás indítása</button>
-          <button class="btn btn-outline" onclick="selectAllTenseOnly()">Mindet</button>
-          <button class="btn btn-outline" onclick="deselectAllTenseOnly()">Törlés</button>
-        </div>
-        <div id="tense-only-area" style="display:none">
-          <div id="tense-only-wrap"></div>
-        </div>
-        <div id="tense-only-empty" style="display:none;padding:2rem;text-align:center;color:var(--faint)">Válassz legalább egy igeidőt!</div>
       </div>
 
       <div id="tpanel-builder" class="tpanel">

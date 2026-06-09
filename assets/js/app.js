@@ -186,213 +186,34 @@ function renderOverviewDonut(active, total){
 }
 
 // ============================================================
-// IGEIDŐ GYAKORLÓ (csak fill, séma nélkül)
+// NEHÉZ MÓD — igeidő neve rejtett + hint elérhető a Gyakorlás fülön
 // ============================================================
-var tenseOnlySelected = new Set();
-var tenseOnlyQueue = [];
-var tenseOnlyIdx = 0;
-var tenseOnlyScore = {correct:0, total:0};
-var tenseOnlyPhase = 'idle';
+var hardMode = Store.get('practice_hard_mode', false);
 
-function getTenseOnlyIds(){
-  return Object.keys(GRAMMAR_EXERCISES).filter(function(id){
-    return GRAMMAR_EXERCISES[id].category === 'tense';
-  });
+function toggleHardMode(){
+  hardMode = !hardMode;
+  Store.set('practice_hard_mode', hardMode);
+  updateHardModeBtn();
 }
 
-function toggleTenseOnly(el){
-  var id = el.getAttribute('data-id');
-  if(!id) return;
-  if(tenseOnlySelected.has(id)){
-    tenseOnlySelected.delete(id);
-    el.classList.remove('selected');
-  } else {
-    tenseOnlySelected.add(id);
-    el.classList.add('selected');
-  }
+function updateHardModeBtn(){
+  var btn = document.getElementById('hard-mode-btn');
+  var desc = document.getElementById('hard-mode-desc');
+  if(btn) btn.classList.toggle('active', hardMode);
+  if(desc) desc.textContent = hardMode
+    ? 'Az igeidő neve rejtett — döntsd el magad'
+    : 'Az igeidő neve és szintje látható';
 }
 
-function renderTenseOnlySelector(){
-  var grid = document.getElementById('tense-only-grid');
-  if(!grid) return;
-  var byLevel = {};
-  getTenseOnlyIds().forEach(function(id){
-    var item = GRAMMAR_EXERCISES[id];
-    var lvl = item.level || 'B1';
-    if(!byLevel[lvl]) byLevel[lvl] = [];
-    byLevel[lvl].push({id:id, name:item.name});
-  });
-  var html = '';
-  ['A1','A2','B1','B2','C1'].forEach(function(lvl){
-    if(!byLevel[lvl]) return;
-    html += '<div class="tense-group"><div class="tense-group-label">'+lvl+'</div><div class="tense-chips">';
-    byLevel[lvl].forEach(function(entry){
-      var sel = tenseOnlySelected.has(entry.id);
-      var chipId = 'to-chip-' + entry.id;
-      html += '<div class="tense-chip chip-tense' + (sel ? ' selected' : '') + '" id="' + chipId + '" onclick="toggleTenseOnly(this)"'
-        + ' data-id="' + entry.id + '">'
-        + '<div class="tc-name">' + entry.name + '</div></div>';
-    });
-    html += '</div></div>';
-  });
-  grid.innerHTML = html;
-}
-
-function selectAllTenseOnly(){
-  getTenseOnlyIds().forEach(function(id){
-    tenseOnlySelected.add(id);
-    var el = document.getElementById('to-chip-'+id);
-    if(el) el.classList.add('selected');
-  });
-}
-
-function deselectAllTenseOnly(){
-  false && TENSE_ONLY_IDS.clear ? tenseOnlySelected.clear() : (tenseOnlySelected = new Set());
-  document.querySelectorAll('#tense-only-grid .tense-chip').forEach(function(c){ c.classList.remove('selected'); });
-}
-
-function startTenseOnly(){
-  if(!tenseOnlySelected.size){
-    document.getElementById('tense-only-empty').style.display = 'block';
-    return;
-  }
-  document.getElementById('tense-only-empty').style.display = 'none';
-  tenseOnlyQueue = [];
-  tenseOnlySelected.forEach(function(id){
-    var item = GRAMMAR_EXERCISES[id];
-    if(!item) return;
-    item.exercises.filter(function(ex){ return ex.type === 'fill'; })
-      .forEach(function(ex){ tenseOnlyQueue.push({id:id, name:item.name, ex:ex}); });
-  });
-  tenseOnlyQueue.sort(function(){ return Math.random() - 0.5; });
-  tenseOnlyIdx = 0;
-  tenseOnlyScore = {correct:0, total:0};
-  tenseOnlyPhase = 'question';
-  document.getElementById('tense-only-area').style.display = 'block';
-  renderTenseOnlyExercise();
-}
-
-function renderTenseOnlyExercise(){
-  var wrap = document.getElementById('tense-only-wrap');
-  if(tenseOnlyIdx >= tenseOnlyQueue.length){ showTenseOnlySummary(); return; }
-  var item = tenseOnlyQueue[tenseOnlyIdx];
-  var ex = item.ex;
-  tenseOnlyPhase = 'question';
-  // Get roadmap item for hint
-  var rmItem = null;
-  ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===item.id) rmItem=i; }); });
-
-  var html = '<div class="ex-card">';
-  html += '<div class="ex-card-header">'
-    + '<span style="font-size:.84rem;color:var(--muted)">'+(tenseOnlyIdx+1)+' / '+tenseOnlyQueue.length+'</span>'
-    + '<span class="ex-score-good">'+tenseOnlyScore.correct+' helyes</span>'
-    + '</div>';
-  html += '<div class="ex-hu-text">'+ex.hu+'</div>';
-  html += '<div class="ex-section-label" style="margin-top:1rem">Egészítsd ki</div>';
-  html += '<div class="ex-sentence-row">';
-  if(ex.pre) html += '<span class="ex-sentence-part">'+ex.pre+'</span>';
-  html += '<input type="text" id="to-input" class="ex-sentence-input" placeholder="..." autocomplete="off" autocorrect="off" spellcheck="false" data-answer="'+escapeAttr(ex.answer)+'"/>';
-  if(ex.post) html += '<span class="ex-sentence-part">'+ex.post+'</span>';
-  html += '</div>';
-
-  // Collapsible hint
-  html += '<div class="to-hint-wrap">';
-  html += '<button class="to-hint-btn" onclick="toggleTenseHint()">'
-    + '<span id="to-hint-icon">▶</span> Segítség — nyelvtani magyarázat'
-    + '</button>';
-  html += '<div id="to-hint-body" style="display:none">';
-  if(rmItem){
-    html += '<div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:.4rem">'+item.name+'</div>';
-    html += renderRoadmapItem(rmItem, true);
-  } else {
-    html += '<div style="font-size:.82rem;color:var(--muted)">'+item.name+'</div>';
-  }
-  html += '</div></div>';
-
-  html += '<div id="to-feedback" class="ex-feedback" style="display:none"></div>';
-  html += '<div class="ex-nav">'
-    + '<button class="btn btn-outline" onclick="checkTenseOnly()">Ellenőrzés</button>'
-    + '<button class="btn btn-outline" id="to-show-btn" onclick="showTenseOnlyAnswer()">Mutasd</button>'
-    + '<button class="btn btn-gold" id="to-next-btn" style="display:none" onclick="nextTenseOnly()">Következő →</button>'
-    + '</div>';
-  html += '</div>';
-  wrap.innerHTML = html;
-  var inp = document.getElementById('to-input');
-  if(inp){ inp.focus(); }
-}
-
-
-function toggleTenseHint(){
-  var body = document.getElementById('to-hint-body');
-  var icon = document.getElementById('to-hint-icon');
+function toggleGrHint(){
+  var body = document.getElementById('gr-hint-body');
+  var icon = document.getElementById('gr-hint-icon');
   if(!body) return;
   var open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if(icon) icon.textContent = open ? '▶' : '▼';
 }
 
-function checkTenseOnly(){
-  if(tenseOnlyPhase === 'checked') return;
-  var inp = document.getElementById('to-input');
-  if(!inp || !inp.value.trim()) return;
-  var userVal = inp.value.trim();
-  var correct = inp.getAttribute('data-answer') || '';
-  var accepted = correct.split('/').map(function(a){ return normalise(a.trim()); });
-  var isCorrect = accepted.indexOf(normalise(userVal)) > -1;
-  inp.disabled = true;
-  inp.classList.add(isCorrect ? 'correct' : 'wrong');
-  if(isCorrect) tenseOnlyScore.correct++;
-  tenseOnlyScore.total++;
-  tenseOnlyPhase = 'checked';
-  var fb = document.getElementById('to-feedback');
-  // Show igeidő name after answer
-  var itemName = tenseOnlyQueue[tenseOnlyIdx].name;
-  fb.className = 'ex-feedback ' + (isCorrect ? 'correct' : 'wrong');
-  fb.innerHTML = (isCorrect ? '✓ Helyes! ' : '✗ Helyes: <strong>'+correct+'</strong> — ')
-    + '<span style="font-size:.78rem;color:var(--muted)">'+itemName+'</span>';
-  fb.style.display = 'block';
-  document.getElementById('to-show-btn').style.display = 'none';
-  document.getElementById('to-next-btn').style.display = 'inline-block';
-  // Save wrong answer
-  if(!isCorrect){
-    var ex2 = tenseOnlyQueue[tenseOnlyIdx].ex;
-    if(ex2 && ex2.hu && correct) addErrorPattern(ex2.hu.substring(0,60), correct, 'grammar', itemName);
-  }
-}
-
-function showTenseOnlyAnswer(){
-  var inp = document.getElementById('to-input');
-  var correct = inp ? inp.getAttribute('data-answer') : '';
-  if(inp){ inp.value = correct; inp.disabled = true; inp.classList.add('wrong'); }
-  tenseOnlyScore.total++;
-  tenseOnlyPhase = 'checked';
-  var fb = document.getElementById('to-feedback');
-  var itemName = tenseOnlyQueue[tenseOnlyIdx].name;
-  fb.className = 'ex-feedback wrong';
-  fb.innerHTML = 'Helyes: <strong>'+correct+'</strong> — <span style="font-size:.78rem;color:var(--muted)">'+itemName+'</span>';
-  fb.style.display = 'block';
-  document.getElementById('to-show-btn').style.display = 'none';
-  document.getElementById('to-next-btn').style.display = 'inline-block';
-}
-
-function nextTenseOnly(){
-  tenseOnlyIdx++;
-  tenseOnlyPhase = 'question';
-  renderTenseOnlyExercise();
-}
-
-function showTenseOnlySummary(){
-  var s = tenseOnlyScore;
-  var pct = s.total ? Math.round(s.correct/s.total*100) : 0;
-  var msg = pct>=85?'Kiváló!':pct>=65?'Szép munka!':'Gyakorolj még!';
-  document.getElementById('tense-only-wrap').innerHTML =
-    '<div class="ex-card"><div style="text-align:center;padding:1.5rem 1rem">'
-    + '<div style="font-family:\'Inter\',sans-serif;font-size:2.2rem;color:var(--accent)">'+s.correct+'/'+s.total+'</div>'
-    + '<div style="font-size:1.1rem;margin:.5rem 0">'+pct+'%</div>'
-    + '<div style="color:var(--muted);font-size:.88rem;margin-bottom:1.5rem">'+msg+'</div>'
-    + '<button class="btn btn-gold" onclick="startTenseOnly()">Újra</button>'
-    + '</div></div>';
-}
 
 
 // ============================================================
@@ -1052,11 +873,14 @@ function launchApp(){
       showMain(mainName, navBtn);
     }
     if(mainName === 'tenses'){
-      var tabName = Store.get('active_tense_tab', 'practice');
+      var savedTab = Store.get('active_tense_tab', 'practice');
+      // 'tenses' fül eltávolítva — fallback 'practice'-re
+      var tabName = (savedTab === 'tenses') ? 'practice' : savedTab;
       var tabBtn = document.getElementById('tense-tab-' + tabName);
       showTenseTab(tabName, tabBtn);
     }
   });
+  updateHardModeBtn();
   oxLoad();
   initProgressPanel();
   renderRoadmap();
@@ -1069,14 +893,6 @@ function launchApp(){
       e.preventDefault(); convoSend();
     }
     if(e.key==='Enter' && document.getElementById('panel-tenses') && document.getElementById('panel-tenses').classList.contains('active')){
-      // Igeidő gyakorló (tpanel-tenses)
-      var tensePanel = document.getElementById('tpanel-tenses');
-      if(tensePanel && tensePanel.classList.contains('active')){
-        e.preventDefault();
-        if(tenseOnlyPhase==='question'){ checkTenseOnly(); }
-        else if(tenseOnlyPhase==='checked'){ nextTenseOnly(); }
-        return;
-      }
       // Általános gyakorló (tpanel-practice)
       var wrap = document.getElementById('ex-card-wrap');
       if(!wrap || !wrap.innerHTML) return;
@@ -1171,7 +987,6 @@ function showTenseTab(name, el){
   if(panel) panel.classList.add('active');
   if(el) el.classList.add('active');
   Store.set('active_tense_tab', name);
-  if(name==='tenses') renderTenseOnlySelector();
   if(name==='builder'){ initBuilderTenseSelect(); }
   if(name==='reference') renderGrReference();
 }
@@ -2511,10 +2326,10 @@ function renderGrExercise(){
   var type = item.ex.type;
 
   var html = '<div class="ex-card">';
-  // Header: level badge + topic
+  // Header: level badge + topic (nehéz módban rejtett)
   html += '<div class="ex-card-header">'
-    + '<span class="ex-tense-badge">'+item.level+'</span>'
-    + '<span style="font-size:.84rem;color:var(--muted)">'+item.itemName+'</span>'
+    + (hardMode ? '' : '<span class="ex-tense-badge">'+item.level+'</span>')
+    + (hardMode ? '' : '<span style="font-size:.84rem;color:var(--muted)">'+item.itemName+'</span>')
     + '<span class="ex-counter">'+(grExState.idx+1)+' / '+grExState.queue.length
     + ' &nbsp; <span class="ex-score-good">'+grExState.score.correct+' helyes</span></span>'
     + '</div>';
@@ -2556,6 +2371,21 @@ function renderGrExercise(){
       html += '<button class="ex-choice-btn" onclick="selectChoice(this,'+i+')" data-idx="'+i+'" data-correct="'+item.ex.correct+'">'+opt+'</button>';
     });
     html += '</div>';
+  }
+
+  // Nehéz módban: kinyitható hint (fill + transform típusoknál)
+  if(hardMode && (type === 'fill' || type === 'transform')){
+    var rmItemHard = null;
+    ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===item.roadmapId) rmItemHard=i; }); });
+    if(rmItemHard){
+      html += '<div class="to-hint-wrap">';
+      html += '<button class="to-hint-btn" onclick="toggleGrHint()">'
+        + '<span id="gr-hint-icon">▶</span> Segítség — nyelvtani magyarázat</button>';
+      html += '<div id="gr-hint-body" style="display:none">';
+      html += '<div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:.4rem">'+item.itemName+'</div>';
+      html += renderRoadmapItem(rmItemHard, true);
+      html += '</div></div>';
+    }
   }
 
   html += '<div id="ex-feedback" class="ex-feedback" style="display:none"></div>';

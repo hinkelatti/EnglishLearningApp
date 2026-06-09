@@ -177,6 +177,10 @@
 .tutor-input:focus{outline:none;border-color:var(--accent)}
 .tutor-send{flex-shrink:0;align-self:flex-end}
 
+/* Nehéz mód kapcsoló */
+.hard-mode-bar{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.hard-mode-desc{font-size:.76rem;color:var(--muted)}
+
 /* Mondatszerkesztő */
 .builder-settings{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
 .bld-task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.4rem;margin-top:1rem}
