@@ -2796,16 +2796,26 @@ function convoStopMic(){
 // OXFORD / SZÓTÁR
 // ============================================================
 function oxLoad(){
-  var stored=localStorage.getItem('oxford_words');
-  if(stored) oxWords=JSON.parse(stored);
+  var stored = localStorage.getItem('oxford_words');
+  if(stored){
+    oxWords = JSON.parse(stored);
+    // Ha nincs __ts, az adat régi (csak localStorage, soha nem ment D1-be) — most migráljuk
+    if(!localStorage.getItem('oxford_words__ts')) oxSave();
+  }
   oxPhraseLoad();
-  return oxWords.length>0;
+  return oxWords.length > 0;
 }
 
 // Store.set = localStorage + debounced D1 write-through → szinkronizál más eszközökre is
 function oxSave(){ Store.set('oxford_words', oxWords); }
 function oxPhraseSave(){ Store.set('oxford_phrases', oxPhrases); }
-function oxPhraseLoad(){ var s=localStorage.getItem('oxford_phrases'); if(s) oxPhrases=JSON.parse(s); }
+function oxPhraseLoad(){
+  var s = localStorage.getItem('oxford_phrases');
+  if(s){
+    oxPhrases = JSON.parse(s);
+    if(!localStorage.getItem('oxford_phrases__ts')) oxPhraseSave();
+  }
+}
 
 function oxGetCounts(){
   var byLevel={};
