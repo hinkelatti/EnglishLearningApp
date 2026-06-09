@@ -3030,7 +3030,24 @@ async function ankiSync(){
       else unchanged++;
     });
     oxSave();
-    result.innerHTML='<div class="ok-box">Szinkronizáció kész! '+updated+' státusz frissítve, '+unchanged+' változatlan, '+notFound+' Oxford szó nincs még Ankiban.</div>';
+    // allCards frissítése az Anki kártyák mezőiből (Hungarian, Example, Collocations)
+    allCards = [];
+    Object.values(fieldMap).forEach(function(info){
+      var f = info.fields;
+      allCards.push({
+        english:      (f.English      ||{}).value || '',
+        hungarian:    (f.Hungarian    ||{}).value || '',
+        example:      (f.Example      ||{}).value || '',
+        collocations: (f.Collocations ||{}).value || '',
+        level:        (f.Level        ||{}).value || '',
+        source:       (f.Source       ||{}).value || '',
+        status:       (f.Status       ||{}).value || ''
+      });
+    });
+    localStorage.setItem('anki_cards', JSON.stringify(allCards));
+    renderOxWordlist();
+    renderPhrases();
+    result.innerHTML='<div class="ok-box">Szinkronizáció kész! '+updated+' státusz frissítve, '+unchanged+' változatlan, '+notFound+' Oxford szó nincs még Ankiban. '+allCards.length+' kártya betöltve.</div>';
   } catch(e){
     result.innerHTML='<div class="err">Hiba: '+(e.message||'Ismeretlen hiba')+'</div>';
     console.error('ankiSync error:', e);
