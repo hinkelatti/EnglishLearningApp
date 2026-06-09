@@ -880,7 +880,16 @@ function safeParseJSON(text){
         var stripped = t.replace(/([^\\])\n/g, '$1 ').replace(/([^\\])\r/g, '$1 ');
         return JSON.parse(stripped);
       } catch(e3) {
-        throw new Error('JSON parse failed: ' + e1.message);
+        try {
+          // Legagreszívebb: escapeletlen " karakterek javítása string értékeken belül
+          // Minden :"..." pattern-ben a belső " karaktereket \"-re cseréljük
+          var fixed2 = t.replace(/:\s*"([\s\S]*?)(?<!\\)"(?=\s*[,}\]])/g, function(m, inner){
+            return ': "' + inner.replace(/(?<!\\)"/g, '\\"') + '"';
+          });
+          return JSON.parse(fixed2);
+        } catch(e4) {
+          throw new Error('JSON parse failed: ' + e1.message);
+        }
       }
     }
   }
@@ -1793,8 +1802,8 @@ async function builderCheck(){
 
   try {
     var r = await claude(
-      'You are an English grammar teacher for a Hungarian B1 learner. Evaluate this sentence building exercise. Return ONLY valid JSON on a single line: {"correct":true/false,"score":1-10,"feedback":"HU explanation what is good/wrong","corrected":"the correct English sentence","errors":[{"wrong":"phrase","right":"fix","explanation":"HU"}]}.',
-      'Tense: ' + bldCurrentTask.tense + '. Type: ' + bldCurrentTask.type + '.\nHungarian: "' + bldCurrentTask.hu + '"\nExpected answer: "' + bldCurrentTask.answer + '"\nStudent answer: "' + ans + '"',
+      'You are an English grammar teacher for a Hungarian B1 learner. Evaluate this sentence building exercise. Return ONLY valid JSON on a single line. CRITICAL: never use double quotes inside string values — use single quotes instead. Schema: {"correct":true/false,"score":1-10,"feedback":"HU explanation","corrected":"correct English sentence","errors":[{"wrong":"phrase","right":"fix","explanation":"HU"}]}.',
+      'Tense: ' + bldCurrentTask.tense + '. Type: ' + bldCurrentTask.type + '.\nHungarian: ' + bldCurrentTask.hu + '\nExpected: ' + bldCurrentTask.answer + '\nStudent: ' + ans,
       600
     );
     var d = safeParseJSON(r);
