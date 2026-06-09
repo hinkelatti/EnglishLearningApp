@@ -879,8 +879,12 @@ function launchApp(){
       var tabBtn = document.getElementById('tense-tab-' + tabName);
       showTenseTab(tabName, tabBtn);
     }
-    // Oxford adatok D1-ből szinkronizált értékek betöltése a memóriába
+    // Oxford adatok + allCards D1-ből szinkronizált értékek betöltése a memóriába
     oxLoad();
+    allCards = Store.get('anki_cards', []);
+    renderVocabDashboard();
+    renderOxWordlist();
+    renderPhrases();
   });
   updateHardModeBtn();
   oxLoad();
