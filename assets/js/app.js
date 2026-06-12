@@ -451,7 +451,7 @@ function renderProgressOverview() {
   var weekMin = 0;
   for(var i = 0; i < 7; i++){
     var wd = new Date(weekStart + 'T00:00:00'); wd.setDate(wd.getDate() + i);
-    var wds = wd.toISOString().slice(0, 10);
+    var wds = localDateStr(wd);
     if(timeData[wds]) weekMin += Math.round((timeData[wds].app + timeData[wds].anki) / 60);
   }
   var sessEl = document.getElementById('stat-sessions');
@@ -461,18 +461,24 @@ function renderProgressOverview() {
   renderWeeklyActivity();
 }
 
+// Lokális dátum YYYY-MM-DD formátumban — a toISOString() UTC-t ad, ami magyar
+// időzónában éjfél és hajnali 1-2 óra között egy nappal eltolná a dátumot
+function localDateStr(d) {
+  var p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
 function getWeekStart() {
   var d = new Date();
   var day = d.getDay() || 7;
   d.setDate(d.getDate() - day + 1);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 
 // Tanulási idő mentése (másodperc) — 'app' vagy 'anki' típusra
 function addLearningTime(type, seconds) {
   if(seconds < 5 || seconds > 7200) return; // 5mp alatt / 2 óra felett ignoráljuk
-  var today = new Date().toISOString().slice(0, 10);
+  var today = localDateStr(new Date());
   var data = JSON.parse(localStorage.getItem('learning_time') || '{}');
   if(!data[today]) data[today] = {app: 0, anki: 0};
   data[today][type] = (data[today][type] || 0) + seconds;
@@ -505,28 +511,30 @@ var _panelTimer = {
 function renderWeeklyActivity() {
   var wrap = document.getElementById('weekly-activity');
   if(!wrap) return;
-  var days = ['H', 'K', 'Sz', 'Cs', 'P', 'Szo', 'V'];
-  var weekStart = getWeekStart();
+  // Gördülő 7 napos ablak: a mai nap mindig a jobb szélső oszlop
+  var dayNames = ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo']; // getDay() szerinti index
   var timeData = JSON.parse(localStorage.getItem('learning_time') || '{}');
-  var todayStr = new Date().toISOString().slice(0, 10);
+  var dates = [];
+  for(var i = 6; i >= 0; i--){
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    dates.push(d);
+  }
 
   // Maximális perc skálázáshoz
   var maxMin = 0;
-  for(var i = 0; i < 7; i++){
-    var d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + i);
-    var ds = d.toISOString().slice(0, 10);
-    var e = timeData[ds] || {app:0, anki:0};
+  dates.forEach(function(d){
+    var e = timeData[localDateStr(d)] || {app:0, anki:0};
     var tot = Math.round((e.app + e.anki) / 60);
     if(tot > maxMin) maxMin = tot;
-  }
+  });
   if(maxMin < 10) maxMin = 30; // minimum skála 30 perc
 
   var BAR_MAX = 50; // px
   var html = '';
   for(var i = 0; i < 7; i++){
-    var d = new Date(weekStart + 'T00:00:00'); d.setDate(d.getDate() + i);
-    var ds = d.toISOString().slice(0, 10);
-    var isToday = ds === todayStr;
+    var d = dates[i];
+    var ds = localDateStr(d);
+    var isToday = i === 6;
     var e = timeData[ds] || {app:0, anki:0};
     var appMin  = Math.round(e.app  / 60);
     var ankiMin = Math.round(e.anki / 60);
@@ -547,7 +555,7 @@ function renderWeeklyActivity() {
           ? '<div class="weekly-anki-fill" style="height:'+ankiH+'px;opacity:'+opacity+'"></div>'
           : '')
       + '</div>'
-      + '<div class="weekly-day-label'+(isToday?' wdl-today':'')+'">'+days[i]+'</div>'
+      + '<div class="weekly-day-label'+(isToday?' wdl-today':'')+'">'+(isToday?'Ma':dayNames[d.getDay()])+'</div>'
       + '</div>';
   }
   wrap.innerHTML = html;
@@ -601,7 +609,7 @@ async function generateDailyPlan() {
 }
 
 function getTodayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateStr(new Date());
 }
 
 function toggleDailyTask(idx, el) {
@@ -676,7 +684,7 @@ function weeklyLogSave() {
   var logs = JSON.parse(localStorage.getItem('weekly_logs') || '[]');
   var now = new Date();
   logs.unshift({
-    date: now.toISOString().slice(0, 10),
+    date: localDateStr(now),
     week: 'W' + getWeekNumber(now),
     answers: weeklyAnswers,
     summary: summary
@@ -685,7 +693,7 @@ function weeklyLogSave() {
   // Also append to log document
   var logEl = document.getElementById('doc-log-text');
   if (logEl) {
-    var entry = '\n## ' + now.toISOString().slice(0, 10) + ' — Heti összefoglaló\n\n' + summary + '\n\n';
+    var entry = '\n## ' + localDateStr(now) + ' — Heti összefoglaló\n\n' + summary + '\n\n';
     logEl.value = logEl.value + entry;
     docSave('log');
   }
@@ -724,7 +732,7 @@ function addErrorPattern(wrong, right, type, explanation) {
   var existing = patterns.find(function(p) { return p.wrong === wrong; });
   if (existing) {
     existing.count = (existing.count || 1) + 1;
-    existing.lastSeen = new Date().toISOString().slice(0, 10);
+    existing.lastSeen = getTodayStr();
   } else {
     patterns.push({
       id: Date.now(),
@@ -734,8 +742,8 @@ function addErrorPattern(wrong, right, type, explanation) {
       explanation: explanation || '',
       status: 'active',
       count: 1,
-      firstSeen: new Date().toISOString().slice(0, 10),
-      lastSeen: new Date().toISOString().slice(0, 10)
+      firstSeen: getTodayStr(),
+      lastSeen: getTodayStr()
     });
   }
   localStorage.setItem('error_patterns', JSON.stringify(patterns));
@@ -3245,7 +3253,9 @@ async function ankiSync(){
     // Anki review idők lekérése heti bontásban
     status.textContent='Review idők lekérése...';
     try {
-      var weekStartMs = new Date(getWeekStart() + 'T00:00:00').getTime();
+      // Az elmúlt 7 nap review-it kérjük le (az áttekintés diagram gördülő ablakához)
+      var since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 6);
+      var weekStartMs = since.getTime();
       var reviewTimes = {};
       for(var ri=0; ri<cardIds.length; ri+=200){
         var rchunk = cardIds.slice(ri, ri+200);
@@ -3254,7 +3264,7 @@ async function ankiSync(){
           Object.values(reviews).forEach(function(cardReviews){
             cardReviews.forEach(function(r){
               if(r.id >= weekStartMs){
-                var rDate = new Date(r.id).toISOString().slice(0,10);
+                var rDate = localDateStr(new Date(r.id));
                 reviewTimes[rDate] = (reviewTimes[rDate]||0) + Math.floor((r.time||0)/1000);
               }
             });
