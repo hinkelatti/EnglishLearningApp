@@ -855,6 +855,7 @@ function initProgressPanel() {
   renderProgressOverview();
   renderWeeklyLogs();
   renderErrorPatterns();
+  ankiRefreshActivity(); // friss Anki review-idők a háttérben (ha fut az Anki)
 }
 
 function show(id){ var e=document.getElementById(id); if(e) e.style.display='block'; }
@@ -1068,7 +1069,7 @@ function showSub(panel, sub, el){
   if(panel==='translate' && sub==='comprehension') compInit();
   if(panel==='translate' && sub==='uzleti'){}
   if(panel==='translate' && sub==='text') renderGenTopics();
-  if(panel==='roadmap' && sub==='overview') renderProgressOverview();
+  if(panel==='roadmap' && sub==='overview'){ renderProgressOverview(); ankiRefreshActivity(); }
   if(panel==='roadmap' && sub==='vocab'){ oxLoad(); renderVocabDashboard(); }
   if(panel==='roadmap' && sub==='map'){ renderRoadmap(); updateRoadmapProgress(); }
   if(panel==='roadmap' && sub==='weekly') renderWeeklyLogs();
@@ -3103,6 +3104,50 @@ function ankiRequest(action, params){
     .then(function(d){ if(d.error) throw new Error(d.error); return d.result; });
 }
 
+// Az elmúlt 7 nap Anki review-idejének lekérése és beírása a learning_time-ba.
+// cardIds opcionális — ha nincs megadva, maga kéri le (English C1 Vocab kártyák).
+async function ankiFetchReviewTimes(cardIds){
+  if(!cardIds) cardIds = await ankiRequest('findCards',{query:'note:"English C1 Vocab"'});
+  if(!cardIds || !cardIds.length) return false;
+  var since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 6);
+  var sinceMs = since.getTime();
+  var reviewTimes = {};
+  for(var ri=0; ri<cardIds.length; ri+=200){
+    var rchunk = cardIds.slice(ri, ri+200);
+    var reviews = await ankiRequest('getReviewsOfCards', {cards: rchunk});
+    if(reviews){
+      Object.values(reviews).forEach(function(cardReviews){
+        cardReviews.forEach(function(r){
+          if(r.id >= sinceMs){
+            var rDate = localDateStr(new Date(r.id));
+            reviewTimes[rDate] = (reviewTimes[rDate]||0) + Math.floor((r.time||0)/1000);
+          }
+        });
+      });
+    }
+  }
+  if(Object.keys(reviewTimes).length){
+    var ltData = JSON.parse(localStorage.getItem('learning_time')||'{}');
+    Object.keys(reviewTimes).forEach(function(date){
+      if(!ltData[date]) ltData[date]={app:0,anki:0};
+      ltData[date].anki = reviewTimes[date];
+    });
+    localStorage.setItem('learning_time', JSON.stringify(ltData));
+  }
+  return true;
+}
+
+// Csendes háttérfrissítés az Áttekintés panelhez: ha fut az Anki, behúzza a friss
+// review-időket és újrarajzolja a statisztikákat; ha nem fut, némán kihagyja.
+var _ankiActivityLast = 0;
+async function ankiRefreshActivity(){
+  if(Date.now() - _ankiActivityLast < 5*60*1000) return; // legfeljebb 5 percenként
+  _ankiActivityLast = Date.now();
+  try{
+    if(await ankiFetchReviewTimes()) renderProgressOverview();
+  } catch(e){ /* Anki nem elérhető — nem zavarjuk a felhasználót */ }
+}
+
 // ============================================================
 // ANKI HUNGARIAN MEZŐ TISZTÍTÁS
 // ============================================================
@@ -3252,34 +3297,8 @@ async function ankiSync(){
     renderPhrases();
     // Anki review idők lekérése heti bontásban
     status.textContent='Review idők lekérése...';
-    try {
-      // Az elmúlt 7 nap review-it kérjük le (az áttekintés diagram gördülő ablakához)
-      var since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - 6);
-      var weekStartMs = since.getTime();
-      var reviewTimes = {};
-      for(var ri=0; ri<cardIds.length; ri+=200){
-        var rchunk = cardIds.slice(ri, ri+200);
-        var reviews = await ankiRequest('getReviewsOfCards', {cards: rchunk});
-        if(reviews){
-          Object.values(reviews).forEach(function(cardReviews){
-            cardReviews.forEach(function(r){
-              if(r.id >= weekStartMs){
-                var rDate = localDateStr(new Date(r.id));
-                reviewTimes[rDate] = (reviewTimes[rDate]||0) + Math.floor((r.time||0)/1000);
-              }
-            });
-          });
-        }
-      }
-      if(Object.keys(reviewTimes).length){
-        var ltData = JSON.parse(localStorage.getItem('learning_time')||'{}');
-        Object.keys(reviewTimes).forEach(function(date){
-          if(!ltData[date]) ltData[date]={app:0,anki:0};
-          ltData[date].anki = reviewTimes[date];
-        });
-        localStorage.setItem('learning_time', JSON.stringify(ltData));
-      }
-    } catch(re){ console.warn('Review idők lekérése sikertelen:', re); }
+    try { await ankiFetchReviewTimes(cardIds); }
+    catch(re){ console.warn('Review idők lekérése sikertelen:', re); }
     initProgressPanel();
     result.innerHTML='<div class="ok-box">Szinkronizáció kész! '+updated+' státusz frissítve, '+unchanged+' változatlan, '+notFound+' Oxford szó nincs még Ankiban. '+allCards.length+' kártya betöltve.</div>';
   } catch(e){
