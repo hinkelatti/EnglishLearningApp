@@ -71,6 +71,8 @@ textarea#writing-source{background:var(--surface2);border:1px solid var(--border
 .comp-layout{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
 .comp-col-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem}
 .comp-text-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.2rem;font-size:.88rem;line-height:1.8;color:var(--text);max-height:480px;overflow-y:auto;min-height:200px;width:100%;box-sizing:border-box}
+/* Hallás utáni szövegértés: a szöveg elmosva, hogy ne lehessen olvasni */
+.comp-text-box.comp-text-hidden{filter:blur(7px);user-select:none;pointer-events:none}
 .comp-questions-col{display:flex;flex-direction:column}
 .comp-question-item{margin-bottom:1rem}
 .comp-question-text{font-size:.88rem;font-weight:500;color:var(--text);margin-bottom:.4rem;line-height:1.5}

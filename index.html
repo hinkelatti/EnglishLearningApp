@@ -202,6 +202,15 @@
           <div class="comp-text-col">
             <div class="comp-col-label">Szöveg</div>
             <textarea id="comp-text-display" class="comp-text-box" rows="12" placeholder="A Szöveg generálás fülön fordított vagy generált szöveg automatikusan megjelenik itt — vagy írd be közvetlenül, majd kattints az Új kérdések gombra."></textarea>
+            <div style="display:flex;gap:8px;margin-top:.6rem;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-outline" id="btn-comp-speak" onclick="compSpeakToggle()">🔊 Felolvasás</button>
+              <select id="comp-speak-rate" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.84rem;outline:none">
+                <option value="1" selected>Natív tempó</option>
+                <option value="0.85">Lassabb (0.85×)</option>
+                <option value="0.7">Lassú (0.7×)</option>
+              </select>
+              <button class="btn btn-outline" id="btn-comp-hide" onclick="compToggleText()" title="Rejtsd el a szöveget, és válaszolj csak hallás után">🙈 Szöveg elrejtése</button>
+            </div>
           </div>
           <div class="comp-questions-col">
             <div class="comp-col-label">Kérdések</div>

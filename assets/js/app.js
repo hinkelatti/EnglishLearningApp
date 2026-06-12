@@ -1028,6 +1028,7 @@ function toggleDropdown(id){
 
 function showMain(name, el){
   _panelTimer.begin(name); // tanulási idő mérése panelváltáskor
+  if(name!=='translate' && compSpeaking) compSpeakStop(); // felolvasás leállítása panelváltáskor
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn,.nav-dropdown-btn,.nav-sub-btn').forEach(function(b){ b.classList.remove('active'); });
   var panel = document.getElementById('panel-'+name);
@@ -1042,6 +1043,7 @@ function showMain(name, el){
 }
 
 function showSub(panel, sub, el){
+  if(compSpeaking && !(panel==='translate'&&sub==='comprehension')) compSpeakStop(); // felolvasás leállítása alfülváltáskor
   var prefix = 'sub-'+panel+'-';
   document.querySelectorAll('[id^="'+prefix+'"]').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('#panel-'+panel+' .sub-tab').forEach(function(b){ b.classList.remove('active'); });
@@ -2042,6 +2044,8 @@ async function toggleGrammarRule(id, btn){
 // COMPREHENSION PANEL
 // ============================================================
 function compInit(){
+  // A hanglista betöltése aszinkron — már itt elindítjuk, hogy a Felolvasás gombnál kész legyen
+  if(window.speechSynthesis) window.speechSynthesis.getVoices();
   var textEl = document.getElementById('comp-text-display');
   var existingText = textEl ? textEl.value.trim() : '';
   if(!existingText && trText){ textEl.value=trText; existingText=trText; }
@@ -2128,6 +2132,67 @@ async function compCheck(){
     document.getElementById('comp-result').innerHTML='<div class="err">Hiba: '+e.message+'</div>';
   }
   hide('comp-loading'); dis('btn-comp-check',false);
+}
+
+// --- Szövegértés: felolvasás (Web Speech API) ---
+var compSpeaking=false;
+
+// A legjobb angol hang kiválasztása: Edge "Natural" online hangjai a legtermészetesebbek,
+// utána a Google hangok, végül bármilyen en-US.
+function compPickVoice(){
+  var voices=window.speechSynthesis.getVoices();
+  var en=voices.filter(function(v){ return /^en[-_]/i.test(v.lang); });
+  return en.find(function(v){ return /natural/i.test(v.name)&&v.lang==='en-US'; })
+      || en.find(function(v){ return /natural/i.test(v.name); })
+      || en.find(function(v){ return /google/i.test(v.name)&&v.lang==='en-US'; })
+      || en.find(function(v){ return v.lang==='en-US'; })
+      || en[0] || null;
+}
+
+function compSpeakToggle(){
+  if(!window.speechSynthesis){ showToast('A böngésző nem támogatja a felolvasást.'); return; }
+  if(compSpeaking){ compSpeakStop(); return; }
+  var textEl=document.getElementById('comp-text-display');
+  var text=textEl?textEl.value.trim():'';
+  if(!text){ showToast('Nincs felolvasható szöveg.'); return; }
+  window.speechSynthesis.cancel();
+  // Mondatonként olvasunk fel: így természetesebb a hanglejtés, és a Chrome
+  // nem némul el (hosszú, egyetlen utterance kb. 15 mp után megszakad).
+  var sentences=text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g)||[text];
+  var rateEl=document.getElementById('comp-speak-rate');
+  var rate=rateEl?parseFloat(rateEl.value)||1:1;
+  var voice=compPickVoice();
+  compSpeaking=true; compSpeakBtn(true);
+  var idx=0;
+  (function next(){
+    if(!compSpeaking||idx>=sentences.length){ compSpeakStop(); return; }
+    var utt=new SpeechSynthesisUtterance(sentences[idx++].trim());
+    utt.lang='en-US'; utt.rate=rate; utt.pitch=1;
+    if(voice) utt.voice=voice;
+    utt.onend=next;
+    utt.onerror=function(){ compSpeakStop(); };
+    window.speechSynthesis.speak(utt);
+  })();
+}
+
+function compSpeakStop(){
+  compSpeaking=false;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  compSpeakBtn(false);
+}
+
+function compSpeakBtn(on){
+  var b=document.getElementById('btn-comp-speak');
+  if(b) b.innerHTML=on?'⏹ Leállítás':'🔊 Felolvasás';
+}
+
+// Szöveg elrejtése/megjelenítése — csak hallás utáni szövegértéshez
+function compToggleText(){
+  var textEl=document.getElementById('comp-text-display');
+  var b=document.getElementById('btn-comp-hide');
+  if(!textEl) return;
+  var hidden=textEl.classList.toggle('comp-text-hidden');
+  if(b) b.innerHTML=hidden?'👁 Szöveg megjelenítése':'🙈 Szöveg elrejtése';
 }
 
 // ============================================================
