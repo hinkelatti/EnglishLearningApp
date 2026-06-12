@@ -3141,7 +3141,7 @@ async function ankiFetchReviewTimes(cardIds){
 // review-időket és újrarajzolja a statisztikákat; ha nem fut, némán kihagyja.
 var _ankiActivityLast = 0;
 async function ankiRefreshActivity(){
-  if(Date.now() - _ankiActivityLast < 5*60*1000) return; // legfeljebb 5 percenként
+  if(Date.now() - _ankiActivityLast < 30*60*1000) return; // legfeljebb félóránként
   _ankiActivityLast = Date.now();
   try{
     if(await ankiFetchReviewTimes()) renderProgressOverview();
