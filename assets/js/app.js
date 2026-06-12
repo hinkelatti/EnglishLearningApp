@@ -19,9 +19,9 @@ var currentExIdx = 0, exScore = {correct:0, total:0}, exerciseQueue = [];
 var selectedTenses = new Set();
 var compQuestions = [];
 var convoLevel = 'B1', convoHistory = [], convoSystemPrompt = '';
-// TTS alapból bekapcsolva; a kapcsoló állása localStorage-ban marad meg
+// TTS minden betöltéskor bekapcsolva indul; a 🔊 gomb csak az adott munkamenetre kapcsolja ki
 var convoErrors = [], convoRecog = null, convoListening = false;
-var convoTTSEnabled = (localStorage.getItem('convo_tts') || '1') === '1';
+var convoTTSEnabled = true;
 var convoSelectedTopic = '';
 var phrasePageIdx = 0, PHRASE_PAGE_SIZE = 50;
 var phraseRunning = false, phraseQueue = [], phraseIdx = 0;
@@ -2967,7 +2967,6 @@ async function convoCheckErrors(text){
 
 function convoToggleTTS(){
   convoTTSEnabled=!convoTTSEnabled;
-  localStorage.setItem('convo_tts', convoTTSEnabled?'1':'0');
   var btn=document.getElementById('convo-tts-btn');
   if(btn) btn.classList.toggle('active',convoTTSEnabled);
   if(!convoTTSEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
