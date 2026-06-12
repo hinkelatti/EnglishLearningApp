@@ -487,7 +487,7 @@ function addLearningTime(type, seconds) {
 
 // Panel-alapú időmérő — csak tanulási panelokon méri az időt
 var _panelTimer = {
-  panel: null, start: null,
+  panel: null, start: null, idle: false,
   PANELS: ['translate', 'oxford', 'convo', 'tenses'],
   begin: function(name) {
     this.stop();
@@ -497,16 +497,41 @@ var _panelTimer = {
     if(this.panel && this.start) {
       addLearningTime('app', Math.floor((Date.now() - this.start) / 1000));
     }
-    this.panel = null; this.start = null;
+    this.panel = null; this.start = null; this.idle = false;
   },
-  pause: function() {
+  // endMs: meddig számoljuk az időt (inaktivitásnál az utolsó aktivitás pillanatáig)
+  pause: function(endMs) {
     if(this.panel && this.start) {
-      addLearningTime('app', Math.floor((Date.now() - this.start) / 1000));
+      addLearningTime('app', Math.floor(((endMs || Date.now()) - this.start) / 1000));
       this.start = null;
     }
   },
-  resume: function() { if(this.panel) this.start = Date.now(); }
+  // csak akkor indítjuk újra, ha tényleg áll — különben elveszne a futó szakasz
+  resume: function() { if(this.panel && !this.start) this.start = Date.now(); }
 };
+
+// Inaktivitás-figyelés: ha 3 percig nincs egér/billentyű/érintés aktivitás, az
+// időmérés szünetel, és csak az utolsó aktivitásig eltelt idő számít. A felolvasás
+// (TTS) hallgatása aktivitásnak számít, hogy hallás utáni gyakorlásnál ne álljon le.
+var IDLE_LIMIT_MS = 3 * 60 * 1000;
+var _lastActivity = Date.now();
+function _activityPing() {
+  _lastActivity = Date.now();
+  if(_panelTimer.idle) {
+    _panelTimer.idle = false;
+    if(!document.hidden) _panelTimer.resume();
+  }
+}
+['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function(ev) {
+  document.addEventListener(ev, _activityPing, {passive: true});
+});
+setInterval(function() {
+  if(window.speechSynthesis && window.speechSynthesis.speaking) { _lastActivity = Date.now(); return; }
+  if(!_panelTimer.idle && _panelTimer.start && Date.now() - _lastActivity >= IDLE_LIMIT_MS) {
+    _panelTimer.pause(_lastActivity);
+    _panelTimer.idle = true;
+  }
+}, 30000);
 
 function renderWeeklyActivity() {
   var wrap = document.getElementById('weekly-activity');
@@ -981,7 +1006,8 @@ function launchApp(){
   updateHardModeBtn();
   // Böngésző háttérbe kerüléskor a timer megáll, előtérbe jövéskor folytatódik
   document.addEventListener('visibilitychange', function(){
-    if(document.hidden) _panelTimer.pause(); else _panelTimer.resume();
+    // A fülre visszaváltás aktivitásnak számít (az idle állapotot is feloldja)
+    if(document.hidden) _panelTimer.pause(); else { _activityPing(); _panelTimer.resume(); }
   });
   // Oldal bezárásakor is elmentjük az eltelt időt
   window.addEventListener('beforeunload', function(){ _panelTimer.stop(); });
