@@ -1,4 +1,4 @@
-/* Fordítás, írás, üzleti, szövegértés, analyzer panel */
+/* Fordítás, írás, üzleti, szövegértés panel */
 
 /* Fordítás doboz */
 .translated-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:1.1rem 1.3rem;line-height:1.9;font-size:.93rem;min-height:70px}
@@ -89,20 +89,3 @@ textarea#writing-source{background:var(--surface2);border:1px solid var(--border
 .comp-score-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.5rem;margin-bottom:1rem}
 .comp-score-num{font-family:'Inter',sans-serif;font-size:2rem;color:var(--accent)}
 
-/* Analyzer (mondatelemző) */
-.analyzer-input-wrap{display:flex;flex-direction:column;gap:10px}
-.analyzer-lang-row{display:flex;gap:5px}
-.analyzer-lang-btn{padding:5px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:99px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--muted);transition:all .15s}
-.analyzer-lang-btn:hover{border-color:var(--accent);color:var(--text)}
-.analyzer-lang-btn.active{border-color:var(--accent);background:rgba(138,94,42,.08);color:var(--accent);font-weight:500}
-.analyze-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.3rem 1.5rem;margin-bottom:1rem}
-.analyze-translation{font-size:1rem;color:var(--text);line-height:1.6;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
-.analyze-translation-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.analyze-tense-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
-.analyze-tense-en{font-family:'Inter',sans-serif;font-size:1.2rem;color:var(--accent)}
-.analyze-tense-hu{font-size:.85rem;color:var(--muted)}
-.analyze-section{margin-bottom:.9rem}
-.analyze-section h4{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
-.analyze-schema{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--accent3);background:rgba(45,95,128,.06);border:1px solid rgba(45,95,128,.15);border-radius:var(--rs);padding:.5rem .9rem;margin:.3rem 0;display:inline-block;line-height:1.6}
-.analyze-explanation{font-size:.88rem;color:var(--text);line-height:1.75}
-.analyze-why{background:rgba(138,94,42,.06);border-left:3px solid var(--accent);padding:.7rem 1rem;font-size:.86rem;color:var(--text);line-height:1.6;border-radius:0 var(--rs) var(--rs) 0}

@@ -50,7 +50,6 @@
         <button class="sub-tab" onclick="showSub('translate','uzleti',this)">Írás</button>
         <button class="sub-tab" onclick="showSub('translate','comprehension',this)">Szövegértés</button>
         <button class="sub-tab" onclick="showSub('translate','grammar',this)">Nyelvtan</button>
-        <button class="sub-tab" onclick="showSub('translate','analyzer',this)">Mondat elemző</button>
       </div>
       <div id="sub-translate-text" class="sub-panel active">
         <div class="section-title">Szöveg generálás</div>
@@ -235,28 +234,6 @@
         </div>
       </div>
 
-      <div id="sub-translate-analyzer" class="sub-panel">
-      <div class="section-title">Mondat elemző</div>
-      <div class="section-sub">Írj be egy mondatot magyarul vagy angolul — azonosítom az igeidőt, lefordítom és elmagyarázom.</div>
-      <div class="analyzer-input-wrap">
-        <div class="analyzer-lang-row">
-          <button class="analyzer-lang-btn active" id="lang-auto" onclick="setAnalyzerLang('auto',this)">Automatikus felismerés</button>
-          <button class="analyzer-lang-btn" id="lang-hu" onclick="setAnalyzerLang('hu',this)">Magyar</button>
-          <button class="analyzer-lang-btn" id="lang-en" onclick="setAnalyzerLang('en',this)">Angol</button>
-        </div>
-        <div style="position:relative">
-          <textarea id="analyzer-input" rows="3" placeholder="Pl: Az ügyfél elfogadta az ajánlatot a tegnapi hívás során. / The client accepted the proposal during yesterday's call." oninput="analyzerDetectLang()"></textarea>
-          <span id="analyzer-lang-indicator" style="position:absolute;top:10px;right:12px;font-size:.75rem;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:99px;pointer-events:none"></span>
-        </div>
-        <div class="row">
-          <button class="btn btn-gold" id="btn-analyze" onclick="doAnalyze()">Elemzés</button>
-          <button class="btn btn-outline" onclick="clearAnalyzer()">Törlés</button>
-        </div>
-      </div>
-      <div id="analyze-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Elemzés folyamatban...</div>
-      <div id="analyze-result" style="margin-top:1.5rem"></div>
-
-      </div>
     </div>
 
     <div id="panel-roadmap" class="panel active">

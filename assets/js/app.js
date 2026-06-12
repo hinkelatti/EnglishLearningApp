@@ -21,7 +21,6 @@ var compQuestions = [];
 var convoLevel = 'B1', convoHistory = [], convoSystemPrompt = '';
 var convoErrors = [], convoRecog = null, convoListening = false, convoTTSEnabled = false;
 var convoSelectedTopic = '';
-var analyzerLang = 'auto';
 var phrasePageIdx = 0, PHRASE_PAGE_SIZE = 50;
 var phraseRunning = false, phraseQueue = [], phraseIdx = 0;
 var phraseStats = {uploaded:0, failed:0, total:0};
@@ -2259,67 +2258,10 @@ function compToggleText(){
 }
 
 // ============================================================
-// SENTENCE ANALYZER PANEL
+// NYELVFELISMERÉS (az írás-ellenőrzés használja)
 // ============================================================
-function setAnalyzerLang(lang, el){
-  analyzerLang=lang;
-  document.querySelectorAll('.analyzer-lang-btn').forEach(function(b){ b.classList.remove('active'); });
-  if(el) el.classList.add('active');
-  analyzerDetectLang();
-}
-
-function analyzerDetectLang(){
-  if(analyzerLang!=='auto') return;
-  var text=document.getElementById('analyzer-input').value;
-  var indicator=document.getElementById('analyzer-lang-indicator');
-  if(!indicator) return;
-  if(!text.trim()){ indicator.textContent=''; return; }
-  indicator.textContent=detectHungarian(text)?'Magyar':'Angol';
-}
-
 function detectHungarian(text){
   return /[áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/.test(text)||/\b(és|az|egy|hogy|nem|van|volt|már|még|is|de|ha|mert|csak)\b/i.test(text);
-}
-
-function clearAnalyzer(){
-  document.getElementById('analyzer-input').value='';
-  document.getElementById('analyze-result').innerHTML='';
-  var ind=document.getElementById('analyzer-lang-indicator');
-  if(ind) ind.textContent='';
-}
-
-async function doAnalyze(){
-  var text=document.getElementById('analyzer-input').value.trim();
-  if(!text) return;
-  var isHu=analyzerLang==='hu'?true:analyzerLang==='en'?false:detectHungarian(text);
-  dis('btn-analyze',true); show('analyze-loading');
-  document.getElementById('analyze-result').innerHTML='';
-  try{
-    var r=await claude(
-      'You are an English grammar teacher for a Hungarian B1 learner. Analyze the sentence. Return ONLY valid JSON: {"translation":"other language translation","source_lang":"hu/en","tense_en":"tense name","tense_hu":"HU tense name","schema":"formation pattern","explanation":"2-3 sentences HU why this tense","key_signals":"word(s) signaling this tense","biz_tip":"1 sentence HU business tip"}. No markdown.',
-      (isHu?'Hungarian sentence: ':'English sentence: ')+text
-    );
-    var d=safeParseJSON(r);
-    renderAnalyzeResult(text,d,isHu);
-  } catch(e){
-    document.getElementById('analyze-result').innerHTML='<div class="err">Hiba: '+e.message+'</div>';
-  }
-  hide('analyze-loading'); dis('btn-analyze',false);
-}
-
-function renderAnalyzeResult(original,d,isHu){
-  var html='<div class="analyze-card">';
-  html+='<div class="analyze-translation"><div class="analyze-translation-label">'+(isHu?'Magyar → Angol':'Angol → Magyar')+'</div>';
-  html+='<div style="font-size:.88rem;color:var(--muted);margin-bottom:4px">'+original+'</div>';
-  html+='<div style="font-size:1rem;font-weight:500;color:var(--text)">'+(d.translation||'')+'</div></div>';
-  html+='<div class="analyze-tense-header"><span class="analyze-tense-en">'+(d.tense_en||'')+'</span><span class="analyze-tense-hu">'+(d.tense_hu||'')+'</span>';
-  if(d.key_signals) html+='<span style="font-size:.78rem;padding:3px 10px;background:rgba(138,94,42,.08);color:var(--accent);border:1px solid rgba(138,94,42,.2);border-radius:99px">🔑 '+d.key_signals+'</span>';
-  html+='</div>';
-  if(d.schema){ html+='<div class="analyze-section"><h4>Képzési séma</h4><div class="analyze-schema">'+(d.schema||'').replace(/\n/g,'<br>')+'</div></div>'; }
-  if(d.explanation){ html+='<div class="analyze-section"><h4>Miért ezt az igeidőt használja?</h4><div class="analyze-explanation">'+(d.explanation||'')+'</div></div>'; }
-  if(d.biz_tip){ html+='<div class="analyze-why"><strong>Üzleti tipp:</strong> '+d.biz_tip+'</div>'; }
-  html+='</div>';
-  document.getElementById('analyze-result').innerHTML=html;
 }
 
 // ============================================================
