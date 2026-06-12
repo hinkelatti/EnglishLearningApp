@@ -841,14 +841,40 @@ function renderVocabDashboard(){
   }
   document.getElementById('vocab-no-data').style.display='none';
   document.getElementById('vocab-dashboard-content').style.display='block';
-  var counts=oxGetCounts();
-  var sumHtml='';
-  ['A1','A2','B1','B2','C1'].forEach(function(l){
-    var c=counts.byLevel[l]||{new:0,'under learning':0,active:0,passive:0,total:0};
-    if(!c.total) return;
+  var wordCharts=vocabChartsHtml(oxWords,'szó');
+  var sr=document.getElementById('vocab-summary-row'); if(sr) sr.innerHTML=wordCharts.sum;
+  var lb=document.getElementById('vocab-level-bars'); if(lb) lb.innerHTML=wordCharts.bars;
+  // Kifejezések (phrases) blokk — csak akkor látszik, ha van betöltött kifejezés
+  var hasPhrases=oxPhrases.length>0;
+  ['vocab-phrase-label','vocab-phrase-summary','vocab-phrase-bars'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display=hasPhrases?'':'none';
+  });
+  if(hasPhrases){
+    var phraseCharts=vocabChartsHtml(oxPhrases,'kifejezés');
+    var ps=document.getElementById('vocab-phrase-summary'); if(ps) ps.innerHTML=phraseCharts.sum;
+    var pb=document.getElementById('vocab-phrase-bars'); if(pb) pb.innerHTML=phraseCharts.bars;
+  }
+  var activeWords=oxWords.filter(function(w){return w.s==='active';}).length;
+  var el=document.getElementById('stat-active-words'); if(el) el.textContent=activeWords||'—';
+}
+
+// Szint-fánkok és státusz-sávok HTML-je egy szókészletre (szavak vagy kifejezések)
+function vocabChartsHtml(items, noun){
+  var byLevel={};
+  items.forEach(function(w){
+    if(!byLevel[w.l]) byLevel[w.l]={new:0,'under learning':0,active:0,passive:0,total:0};
+    byLevel[w.l][w.s]=(byLevel[w.l][w.s]||0)+1;
+    byLevel[w.l].total++;
+  });
+  var levels=['A1','A2','B1','B2','C1'];
+  Object.keys(byLevel).forEach(function(l){ if(levels.indexOf(l)===-1) levels.push(l); });
+  var sumHtml='', barsHtml='';
+  levels.forEach(function(l){
+    var c=byLevel[l];
+    if(!c||!c.total) return;
     var pA=c.active/c.total,pL=(c['under learning']||0)/c.total,pP=c.passive/c.total,pN=c.new/c.total;
     var pctKnown=Math.round((c.active+c.passive)/c.total*100);
-    var size=80,cx=40,cy=40,r=34,ri=20;
+    var cx=40,cy=40,r=34,ri=20;
     var segments=[{val:pA,color:'#22c55e'},{val:pL,color:'#f59e0b'},{val:pP,color:'#3b82f6'},{val:pN,color:'#e2e8f0'}];
     var svgPath='',angle=-Math.PI/2;
     segments.forEach(function(seg){
@@ -862,19 +888,11 @@ function renderVocabDashboard(){
       svgPath+='<path d="M'+xi1+','+yi1+' L'+x1+','+y1+' A'+r+','+r+' 0 '+large+',1 '+x2+','+y2+' L'+xi2+','+yi2+' A'+ri+','+ri+' 0 '+large+',0 '+xi1+','+yi1+' Z" fill="'+seg.color+'"/>';
       angle+=sweep;
     });
-    sumHtml+='<div class="ox-pie-box"><div class="ox-pie-level">'+l+'</div><div class="ox-pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80">'+svgPath+'</svg><div class="ox-pie-center">'+pctKnown+'%</div></div><div class="ox-pie-total">'+c.total+' szó</div><div class="ox-pie-mini"><span class="ox-mini-badge ox-active">A:'+c.active+'</span><span class="ox-mini-badge ox-learning">L:'+(c['under learning']||0)+'</span><span class="ox-mini-badge ox-passive">P:'+c.passive+'</span><span class="ox-mini-badge ox-new">N:'+c.new+'</span></div></div>';
+    sumHtml+='<div class="ox-pie-box"><div class="ox-pie-level">'+l+'</div><div class="ox-pie-wrap"><svg width="80" height="80" viewBox="0 0 80 80">'+svgPath+'</svg><div class="ox-pie-center">'+pctKnown+'%</div></div><div class="ox-pie-total">'+c.total+' '+noun+'</div><div class="ox-pie-mini"><span class="ox-mini-badge ox-active">A:'+c.active+'</span><span class="ox-mini-badge ox-learning">L:'+(c['under learning']||0)+'</span><span class="ox-mini-badge ox-passive">P:'+c.passive+'</span><span class="ox-mini-badge ox-new">N:'+c.new+'</span></div></div>';
+    var bA=(pA*100).toFixed(1),bL=(pL*100).toFixed(1),bP=(pP*100).toFixed(1),bN=(pN*100).toFixed(1);
+    barsHtml+='<div class="ox-level-bar-row"><div class="ox-level-bar-label"><span><strong>'+l+'</strong> — '+c.total+' '+noun+'</span><span style="font-size:.72rem"><span style="color:var(--success)">Active: '+bA+'%</span> · <span style="color:var(--accent)">Learning: '+bL+'%</span> · <span style="color:#3b82f6">Passive: '+bP+'%</span> · <span style="color:var(--faint)">New: '+bN+'%</span></span></div><div class="ox-bar-track"><div class="ox-bar-active" style="width:'+bA+'%"></div><div class="ox-bar-learning" style="width:'+bL+'%"></div><div class="ox-bar-passive" style="width:'+bP+'%"></div><div class="ox-bar-new" style="width:'+bN+'%"></div></div></div>';
   });
-  var sr=document.getElementById('vocab-summary-row'); if(sr) sr.innerHTML=sumHtml;
-  var barsHtml='';
-  ['A1','A2','B1','B2','C1'].forEach(function(l){
-    var c=counts.byLevel[l]||{new:0,'under learning':0,active:0,passive:0,total:0};
-    if(!c.total) return;
-    var pA=(c.active/c.total*100).toFixed(1),pL=((c['under learning']||0)/c.total*100).toFixed(1),pP=(c.passive/c.total*100).toFixed(1),pN=(c.new/c.total*100).toFixed(1);
-    barsHtml+='<div class="ox-level-bar-row"><div class="ox-level-bar-label"><span><strong>'+l+'</strong> — '+c.total+' szó</span><span style="font-size:.72rem"><span style="color:var(--success)">Active: '+pA+'%</span> · <span style="color:var(--accent)">Learning: '+pL+'%</span> · <span style="color:#3b82f6">Passive: '+pP+'%</span> · <span style="color:var(--faint)">New: '+pN+'%</span></span></div><div class="ox-bar-track"><div class="ox-bar-active" style="width:'+pA+'%"></div><div class="ox-bar-learning" style="width:'+pL+'%"></div><div class="ox-bar-passive" style="width:'+pP+'%"></div><div class="ox-bar-new" style="width:'+pN+'%"></div></div></div>';
-  });
-  var lb=document.getElementById('vocab-level-bars'); if(lb) lb.innerHTML=barsHtml;
-  var activeWords=oxWords.filter(function(w){return w.s==='active';}).length;
-  var el=document.getElementById('stat-active-words'); if(el) el.textContent=activeWords||'—';
+  return {sum:sumHtml, bars:barsHtml};
 }
 
 function initProgressPanel() {
@@ -1000,6 +1018,7 @@ function launchApp(){
     }
     // Oxford adatok + allCards D1-ből szinkronizált értékek betöltése a memóriába
     oxLoad();
+    oxPhraseLoad();
     allCards = Store.get('anki_cards', []);
     renderVocabDashboard();
     renderOxWordlist();
@@ -1103,7 +1122,7 @@ function showSub(panel, sub, el){
   if(panel==='translate' && sub==='uzleti'){}
   if(panel==='translate' && sub==='text') renderGenTopics();
   if(panel==='roadmap' && sub==='overview'){ renderProgressOverview(); ankiRefreshActivity(); }
-  if(panel==='roadmap' && sub==='vocab'){ oxLoad(); renderVocabDashboard(); }
+  if(panel==='roadmap' && sub==='vocab'){ oxLoad(); oxPhraseLoad(); renderVocabDashboard(); }
   if(panel==='roadmap' && sub==='map'){ renderRoadmap(); updateRoadmapProgress(); }
   if(panel==='roadmap' && sub==='weekly') renderWeeklyLogs();
   if(panel==='roadmap' && sub==='errors') renderErrorPatterns();
