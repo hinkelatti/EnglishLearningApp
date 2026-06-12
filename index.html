@@ -700,6 +700,11 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="convo-tts-btn" id="convo-tts-btn" onclick="convoToggleTTS()" title="Hangos felolvasás">🔊</button>
+            <select id="convo-tts-rate" onchange="convoRateChanged()" title="Felolvasás tempója" style="padding:7px 8px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:'Inter',sans-serif;font-size:.8rem;outline:none">
+              <option value="1" selected>Natív tempó</option>
+              <option value="0.85">Lassabb (0.85×)</option>
+              <option value="0.7">Lassú (0.7×)</option>
+            </select>
             <button class="btn btn-outline btn-sm" onclick="convoShowSummary()">📊 Összesítés</button>
             <button class="btn btn-outline btn-sm" onclick="convoReset()">Új társalgás</button>
           </div>

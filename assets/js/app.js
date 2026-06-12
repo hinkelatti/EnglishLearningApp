@@ -19,7 +19,9 @@ var currentExIdx = 0, exScore = {correct:0, total:0}, exerciseQueue = [];
 var selectedTenses = new Set();
 var compQuestions = [];
 var convoLevel = 'B1', convoHistory = [], convoSystemPrompt = '';
-var convoErrors = [], convoRecog = null, convoListening = false, convoTTSEnabled = false;
+// TTS alapból bekapcsolva; a kapcsoló állása localStorage-ban marad meg
+var convoErrors = [], convoRecog = null, convoListening = false;
+var convoTTSEnabled = (localStorage.getItem('convo_tts') || '1') === '1';
 var convoSelectedTopic = '';
 var phrasePageIdx = 0, PHRASE_PAGE_SIZE = 50;
 var phraseRunning = false, phraseQueue = [], phraseIdx = 0;
@@ -1004,6 +1006,11 @@ function launchApp(){
     renderPhrases();
   });
   updateHardModeBtn();
+  // Társalgás TTS: mentett állapot visszatöltése (kapcsoló + tempó)
+  var ttsBtn=document.getElementById('convo-tts-btn');
+  if(ttsBtn) ttsBtn.classList.toggle('active', convoTTSEnabled);
+  var ttsRate=document.getElementById('convo-tts-rate');
+  if(ttsRate) ttsRate.value = localStorage.getItem('convo_tts_rate') || '1';
   // Böngésző háttérbe kerüléskor a timer megáll, előtérbe jövéskor folytatódik
   document.addEventListener('visibilitychange', function(){
     // A fülre visszaváltás aktivitásnak számít (az idle állapotot is feloldja)
@@ -2960,19 +2967,26 @@ async function convoCheckErrors(text){
 
 function convoToggleTTS(){
   convoTTSEnabled=!convoTTSEnabled;
+  localStorage.setItem('convo_tts', convoTTSEnabled?'1':'0');
   var btn=document.getElementById('convo-tts-btn');
   if(btn) btn.classList.toggle('active',convoTTSEnabled);
   if(!convoTTSEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+function convoRateChanged(){
+  var sel=document.getElementById('convo-tts-rate');
+  if(sel) localStorage.setItem('convo_tts_rate', sel.value);
 }
 
 function convoSpeak(text){
   if(!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   var utt=new SpeechSynthesisUtterance(text);
-  utt.lang='en-US'; utt.rate=0.9; utt.pitch=1;
-  var voices=window.speechSynthesis.getVoices();
-  var enVoice=voices.find(function(v){ return v.lang==='en-US'&&v.name.indexOf('Natural')>-1; })||voices.find(function(v){ return v.lang==='en-US'; });
-  if(enVoice) utt.voice=enVoice;
+  var rateEl=document.getElementById('convo-tts-rate');
+  utt.lang='en-US'; utt.rate=rateEl?parseFloat(rateEl.value)||1:1; utt.pitch=1;
+  // Ugyanaz a hangválasztó, mint a szövegértés felolvasónál (Natural > Google > en-US)
+  var voice=compPickVoice();
+  if(voice) utt.voice=voice;
   window.speechSynthesis.speak(utt);
 }
 
