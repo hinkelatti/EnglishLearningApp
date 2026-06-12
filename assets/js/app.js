@@ -1028,7 +1028,7 @@ function toggleDropdown(id){
 
 function showMain(name, el){
   _panelTimer.begin(name); // tanulási idő mérése panelváltáskor
-  if(name!=='translate' && compSpeaking) compSpeakStop(); // felolvasás leállítása panelváltáskor
+  if(name!=='translate' && compSpeaking) compSpeakPause(); // felolvasás szüneteltetése panelváltáskor (a pozíció megmarad)
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn,.nav-dropdown-btn,.nav-sub-btn').forEach(function(b){ b.classList.remove('active'); });
   var panel = document.getElementById('panel-'+name);
@@ -1043,7 +1043,7 @@ function showMain(name, el){
 }
 
 function showSub(panel, sub, el){
-  if(compSpeaking && !(panel==='translate'&&sub==='comprehension')) compSpeakStop(); // felolvasás leállítása alfülváltáskor
+  if(compSpeaking && !(panel==='translate'&&sub==='comprehension')) compSpeakPause(); // felolvasás szüneteltetése alfülváltáskor (a pozíció megmarad)
   var prefix = 'sub-'+panel+'-';
   document.querySelectorAll('[id^="'+prefix+'"]').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('#panel-'+panel+' .sub-tab').forEach(function(b){ b.classList.remove('active'); });
@@ -2135,7 +2135,10 @@ async function compCheck(){
 }
 
 // --- Szövegértés: felolvasás (Web Speech API) ---
-var compSpeaking=false;
+// Mondatonként olvasunk fel: így természetesebb a hanglejtés, a Chrome nem némul el
+// (hosszú, egyetlen utterance kb. 15 mp után megszakad), és mondatpontossággal
+// lehet szüneteltetni, léptetni és a sávon ugrani.
+var compSpeaking=false, compPaused=false, compIdx=0, compSentences=[], compSpeakText='', compGen=0;
 
 // A legjobb angol hang kiválasztása: Edge "Natural" online hangjai a legtermészetesebbek,
 // utána a Google hangok, végül bármilyen en-US.
@@ -2149,41 +2152,101 @@ function compPickVoice(){
       || en[0] || null;
 }
 
-function compSpeakToggle(){
-  if(!window.speechSynthesis){ showToast('A böngésző nem támogatja a felolvasást.'); return; }
-  if(compSpeaking){ compSpeakStop(); return; }
+// Mondatokra bontás — ha a szöveg megváltozott, elölről kezdjük
+function compPrepare(){
   var textEl=document.getElementById('comp-text-display');
   var text=textEl?textEl.value.trim():'';
-  if(!text){ showToast('Nincs felolvasható szöveg.'); return; }
+  if(!text){ showToast('Nincs felolvasható szöveg.'); return false; }
+  if(text!==compSpeakText){
+    compSpeakText=text;
+    compSentences=text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g)||[text];
+    compIdx=0; compPaused=false;
+  }
+  return true;
+}
+
+// Lejátszás az i. mondattól. A compGen generáció-számláló gondoskodik róla, hogy
+// a megszakított (cancel-elt) utterance-ek callbackjei ne zavarják az új lejátszást.
+function compPlayFrom(i){
+  if(!window.speechSynthesis){ showToast('A böngésző nem támogatja a felolvasást.'); return; }
+  if(!compPrepare()) return;
+  compIdx=Math.max(0,Math.min(i,compSentences.length-1));
+  var gen=++compGen;
   window.speechSynthesis.cancel();
-  // Mondatonként olvasunk fel: így természetesebb a hanglejtés, és a Chrome
-  // nem némul el (hosszú, egyetlen utterance kb. 15 mp után megszakad).
-  var sentences=text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g)||[text];
-  var rateEl=document.getElementById('comp-speak-rate');
-  var rate=rateEl?parseFloat(rateEl.value)||1:1;
+  compSpeaking=true; compPaused=false;
   var voice=compPickVoice();
-  compSpeaking=true; compSpeakBtn(true);
-  var idx=0;
-  (function next(){
-    if(!compSpeaking||idx>=sentences.length){ compSpeakStop(); return; }
-    var utt=new SpeechSynthesisUtterance(sentences[idx++].trim());
-    utt.lang='en-US'; utt.rate=rate; utt.pitch=1;
+  compUpdateUI();
+  (function speakNext(){
+    if(gen!==compGen) return;
+    if(compIdx>=compSentences.length){ compSpeakStop(); return; }
+    compUpdateProgress();
+    var rateEl=document.getElementById('comp-speak-rate');
+    var utt=new SpeechSynthesisUtterance(compSentences[compIdx].trim());
+    utt.lang='en-US'; utt.rate=rateEl?parseFloat(rateEl.value)||1:1; utt.pitch=1;
     if(voice) utt.voice=voice;
-    utt.onend=next;
-    utt.onerror=function(){ compSpeakStop(); };
+    utt.onend=function(){ if(gen===compGen){ compIdx++; speakNext(); } };
+    utt.onerror=function(){ if(gen===compGen) compSpeakStop(); };
     window.speechSynthesis.speak(utt);
   })();
 }
 
-function compSpeakStop(){
-  compSpeaking=false;
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
-  compSpeakBtn(false);
+// Lejátszás / szünet / folytatás egy gombbal
+function compSpeakToggle(){
+  if(!window.speechSynthesis){ showToast('A böngésző nem támogatja a felolvasást.'); return; }
+  if(compSpeaking){ compSpeakPause(); return; }
+  compPlayFrom(compPaused?compIdx:0);
 }
 
-function compSpeakBtn(on){
+// Szünet: cancel + mondatindex megőrzése — a natív pause/resume Chrome-ban bugos,
+// így a folytatás az aktuális mondat elejétől indul újra
+function compSpeakPause(){
+  if(!compSpeaking) return;
+  compGen++;
+  window.speechSynthesis.cancel();
+  compSpeaking=false; compPaused=true;
+  compUpdateUI();
+}
+
+function compSpeakStop(){
+  compGen++;
+  compSpeaking=false; compPaused=false;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  compUpdateUI();
+}
+
+function compRestart(){ compPlayFrom(0); }
+
+// Egy mondattal előre/hátra
+function compStep(d){
+  if(!compSentences.length && !compPrepare()) return;
+  compPlayFrom(compIdx+d);
+}
+
+// Kattintás az előrehaladás-sávra: ugrás a kiválasztott mondatra
+function compSeek(e){
+  if(!compSentences.length && !compPrepare()) return;
+  var bar=document.getElementById('comp-progress-bar');
+  var r=bar.getBoundingClientRect();
+  var frac=Math.max(0,Math.min(0.999,(e.clientX-r.left)/r.width));
+  compPlayFrom(Math.floor(frac*compSentences.length));
+}
+
+function compUpdateUI(){
   var b=document.getElementById('btn-comp-speak');
-  if(b) b.innerHTML=on?'⏹ Leállítás':'🔊 Felolvasás';
+  if(b) b.innerHTML=compSpeaking?'⏸ Szünet':(compPaused?'▶ Folytatás':'🔊 Felolvasás');
+  compUpdateProgress();
+}
+
+function compUpdateProgress(){
+  var row=document.getElementById('comp-progress-row');
+  var fill=document.getElementById('comp-progress-fill');
+  var label=document.getElementById('comp-progress-label');
+  if(!row||!fill||!label) return;
+  if(!compSentences.length){ row.style.display='none'; return; }
+  row.style.display='flex';
+  var len=compSentences.length, cur=Math.min(compIdx,len);
+  fill.style.width=Math.round(cur/len*100)+'%';
+  label.textContent=Math.min(cur+1,len)+'/'+len;
 }
 
 // Szöveg elrejtése/megjelenítése — csak hallás utáni szövegértéshez

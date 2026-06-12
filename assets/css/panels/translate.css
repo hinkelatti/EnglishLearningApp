@@ -73,6 +73,11 @@ textarea#writing-source{background:var(--surface2);border:1px solid var(--border
 .comp-text-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.2rem;font-size:.88rem;line-height:1.8;color:var(--text);max-height:480px;overflow-y:auto;min-height:200px;width:100%;box-sizing:border-box}
 /* Hallás utáni szövegértés: a szöveg elmosva, hogy ne lehessen olvasni */
 .comp-text-box.comp-text-hidden{filter:blur(7px);user-select:none;pointer-events:none}
+/* Felolvasás előrehaladás-sáv (kattintható, mondatpontos ugrás) */
+.comp-progress-row{display:flex;align-items:center;gap:10px;margin-top:.6rem}
+.comp-progress-bar{flex:1;height:10px;background:var(--surface);border:1px solid var(--border);border-radius:5px;cursor:pointer;overflow:hidden}
+.comp-progress-fill{height:100%;background:var(--accent);border-radius:5px;width:0;transition:width .25s}
+.comp-progress-label{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .comp-questions-col{display:flex;flex-direction:column}
 .comp-question-item{margin-bottom:1rem}
 .comp-question-text{font-size:.88rem;font-weight:500;color:var(--text);margin-bottom:.4rem;line-height:1.5}
