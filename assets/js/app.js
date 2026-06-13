@@ -493,6 +493,72 @@ function dayCategorySecs(entry) {
   };
 }
 
+// ============================================================
+// EGYSÉGES EREDMÉNY-RÉTEG — minden gyakorlás eredménye ide fut be.
+//  - skill_results: minden értékelt tevékenység naplója (trend, heti visszajelzés)
+//  - item_evidence: roadmap-elemenkénti helyes/hibás használat (élő tudásszint)
+// ============================================================
+
+// Roadmap-elemek indexe id → {item, level} (lustán épül, mert a ROADMAP külön fájlból tölt)
+var _roadmapIndex = null;
+function roadmapItem(id){
+  if(!_roadmapIndex){
+    _roadmapIndex = {};
+    if(typeof ROADMAP !== 'undefined'){
+      ROADMAP.forEach(function(b){ b.items.forEach(function(it){
+        _roadmapIndex[it.id] = {item:it, level:b.level};
+      }); });
+    }
+  }
+  return _roadmapIndex[id] || null;
+}
+
+// Minden értékelt tevékenység eredménye: type='reading'|'writing'|'speaking'|'grammar',
+// score 0–1, count = hány elemből (kérdés/forduló). Trendekhez és a heti visszajelzéshez.
+function logSkillResult(type, score, count){
+  var arr = JSON.parse(localStorage.getItem('skill_results')||'[]');
+  arr.push({date:getTodayStr(), ts:Date.now(), type:type,
+            score:Math.max(0, Math.min(1, score||0)), count:count||1});
+  if(arr.length > 1000) arr = arr.slice(-1000);
+  localStorage.setItem('skill_results', JSON.stringify(arr));
+}
+
+// Roadmap-elem szintű bizonyíték: helyes/hibás használat egy nyelvtani témán.
+// A friss esemény többet nyom (lásd itemMastery), naptári kopás nincs — csak hiba ront.
+function addItemEvidence(roadmapId, correct, wrong){
+  if(!roadmapId || !roadmapItem(roadmapId)) return; // csak valós roadmap-elem
+  correct = correct||0; wrong = wrong||0;
+  if(!correct && !wrong) return;
+  var ev = JSON.parse(localStorage.getItem('item_evidence')||'{}');
+  var e = ev[roadmapId] || {correct:0, wrong:0, events:[], lastSeen:null};
+  e.correct += correct; e.wrong += wrong; e.lastSeen = getTodayStr();
+  // esemény-napló a recency-súlyozáshoz (csak az utolsó 40 marad)
+  var k;
+  for(k=0; k<correct; k++) e.events.push(1);
+  for(k=0; k<wrong; k++) e.events.push(0);
+  if(e.events.length > 40) e.events = e.events.slice(-40);
+  ev[roadmapId] = e;
+  localStorage.setItem('item_evidence', JSON.stringify(ev));
+}
+
+// Kompakt roadmap-témalista a produkciós értékelő promptokhoz ("id = English name (Level)")
+function roadmapTopicsForPrompt(){
+  roadmapItem(''); // index felépítése
+  var lines = [];
+  Object.keys(_roadmapIndex).forEach(function(id){
+    var r = _roadmapIndex[id];
+    lines.push(id+' = '+(r.item.en||r.item.title)+' ('+r.level+')');
+  });
+  return lines.join('; ');
+}
+
+// Az AI által visszaadott attribúció rögzítése: {topics_ok:[id...], topics_wrong:[id...]}
+function recordAttribution(attr){
+  if(!attr) return;
+  if(Array.isArray(attr.topics_ok))    attr.topics_ok.forEach(function(id){ addItemEvidence(id, 1, 0); });
+  if(Array.isArray(attr.topics_wrong)) attr.topics_wrong.forEach(function(id){ addItemEvidence(id, 0, 1); });
+}
+
 // A jelenleg aktív fő panel és Fordítás-aldfül — az időmérő kategóriájához kell
 var _activeMain = 'roadmap', _activeTranslateSub = 'text';
 
@@ -1569,11 +1635,12 @@ async function checkUzletiAnswer(){
 
   try {
     var r = await claude(
-      'You are an English teacher for Hungarian B1 learners. The student was given a writing task and wrote an English text. ' + (typeSpecific[uzletiType]||typeSpecific['general']) + ' ALL text fields MUST be in Hungarian. Return ONLY valid JSON (no markdown, no linebreaks inside strings): {"score":1-10,"overall":"HU summary","positives":["HU"],"corrected_text":"improved version of student text","corrections":[{"type":"grammar|style|typo","wrong":"phrase","right":"fix","explanation":"HU"}]}. Include ALL errors.',
+      'You are an English teacher for Hungarian B1 learners. The student was given a writing task and wrote an English text. ' + (typeSpecific[uzletiType]||typeSpecific['general']) + ' ALL text fields MUST be in Hungarian. Return ONLY valid JSON (no markdown, no linebreaks inside strings): {"score":1-10,"overall":"HU summary","positives":["HU"],"corrected_text":"improved version of student text","corrections":[{"type":"grammar|style|typo","wrong":"phrase","right":"fix","explanation":"HU"}],"roadmap":{"topics_ok":[],"topics_wrong":[]}}. Include ALL errors. For "roadmap": classify grammar topics from this list — TOPICS: '+roadmapTopicsForPrompt()+'. topics_wrong = ids whose grammar the student got WRONG; topics_ok = ids used CORRECTLY. Use ONLY ids from the list; empty arrays if unsure.',
       'Task (Hungarian): "' + uzletiTask + '"\n\nStudent English text:\n"' + my + '"',
       2000
     );
     var d = safeParseJSON(r);
+    if(typeof d.score === 'number'){ logSkillResult('writing', d.score/10, 1); recordAttribution(d.roadmap); }
     var scoreColor = d.score>=8?'var(--success)':d.score>=6?'var(--accent)':'var(--danger)';
     var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+d.score+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+'</span></div>';
 
@@ -2124,12 +2191,13 @@ async function doCheck(){
   document.getElementById('check-result').innerHTML = '';
   try{
     var r = await claude(
-      'You are an English teacher for Hungarian B1 learners. ' + getWritingTypePrompt() + ' ALL text fields in Hungarian. Return ONLY a single line of valid JSON, no markdown, no newlines inside strings. Schema: {"score":0,"overall":"","positives":[],"corrected_text":"","corrections":[{"type":"grammar","wrong":"","right":"","explanation":""}]}. Fill all fields. Escape any quotes inside strings.',
+      'You are an English teacher for Hungarian B1 learners. ' + getWritingTypePrompt() + ' ALL text fields in Hungarian. Return ONLY a single line of valid JSON, no markdown, no newlines inside strings. Schema: {"score":0,"overall":"","positives":[],"corrected_text":"","corrections":[{"type":"grammar","wrong":"","right":"","explanation":""}],"roadmap":{"topics_ok":[],"topics_wrong":[]}}. Fill all fields. Escape any quotes inside strings. For "roadmap": classify grammar topics from this list — TOPICS: '+roadmapTopicsForPrompt()+'. topics_wrong = ids whose grammar the student got WRONG; topics_ok = ids the student clearly used CORRECTLY. Use ONLY ids from the list; empty arrays if unsure.',
       (isHuEn
         ? 'Source Hungarian text:\n"'+sourceText.substring(0,600)+'"\n\nStudent English translation:\n"'+my+'"'
         : 'Source English text:\n"'+sourceText.substring(0,600)+'"\n\nStudent Hungarian translation:\n"'+my+'"')
     );
     var d = safeParseJSON(r);
+    if(typeof d.score === 'number'){ logSkillResult('writing', d.score/10, 1); recordAttribution(d.roadmap); }
     var scoreColor = d.score>=8?'var(--success)':d.score>=6?'var(--accent)':'var(--danger)';
     var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+d.score+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+' </span></div>';
     if(d.corrected_text){
@@ -2168,16 +2236,6 @@ async function doCheck(){
     } else {
       html += '<div class="ok-box">Nem találtam lényeges hibát. Szép munka!</div>';
     }
-    if(d.corrections && d.corrections.length){
-      d.corrections.forEach(function(c){ if(c.wrong&&c.right) addErrorPattern(c.wrong,c.right,c.type||'grammar',c.explanation||''); });
-    }
-    // Auto-collect errors
-    if(d.corrections && d.corrections.length){
-      d.corrections.forEach(function(c){
-        if(c.wrong && c.right) addErrorPattern(c.wrong, c.right, c.type||'grammar', c.explanation||'');
-      });
-    }
-    // Auto-collect errors
     if(d.corrections && d.corrections.length){
       d.corrections.forEach(function(c){ if(c.wrong&&c.right) addErrorPattern(c.wrong,c.right,c.type||'grammar',c.explanation||''); });
     }
@@ -2295,6 +2353,7 @@ async function compCheck(){
       else { inp.classList.add('wrong'); fb.innerHTML='<span style="color:var(--danger)">✗ '+(res.feedback_en||'Nem pontosan.')+'</span><div style="font-size:.76rem;color:var(--muted);margin-top:2px">Helyes válasz: '+compQuestions[i].answer+'</div>'; }
     });
     var pct=Math.round(totalScore/compQuestions.length*100);
+    logSkillResult('reading', pct/100, compQuestions.length); // olvasás/hallás-készség jel
     var msg=pct===100?'Kiváló!':pct>=80?'Szép munka!':pct>=60?'Jól van, de van fejlődési lehetőség.':'Olvasd el újra és próbáld újra.';
     document.getElementById('comp-result').innerHTML='<div class="comp-score-box"><div style="display:flex;align-items:baseline;gap:10px"><span class="comp-score-num">'+totalScore+'/'+compQuestions.length+'</span><span style="font-size:.9rem;color:var(--muted)">'+pct+'% — '+msg+'</span></div></div>';
   } catch(e){
@@ -2907,11 +2966,15 @@ function showGrExSummary(){
   var s = grExState.score;
   var pct = s.total ? Math.round(s.correct/s.total*100) : 0;
 
-  // Save exact history per roadmap item
+  // Save exact history per roadmap item + élő tudásszint-bizonyíték
   Object.keys(grExState.perItem).forEach(function(rid){
     var c = grExState.perItem[rid];
-    if(c.total > 0) saveExerciseHistory(rid, c.correct, c.total);
+    if(c.total > 0){
+      saveExerciseHistory(rid, c.correct, c.total);
+      addItemEvidence(rid, c.correct, c.total - c.correct);
+    }
   });
+  logSkillResult('grammar', pct/100, s.total);
 
   var msg = pct >= 85 ? 'Kiváló munka!' : pct >= 65 ? 'Szép, tovább így!' : 'Gyakorolj még ezekkel a témákkal.';
   var wrap = document.getElementById('ex-card-wrap');
@@ -3034,6 +3097,11 @@ async function convoSend(){
   var correction=results[0], reply=results[1];
   hide('convo-thinking'); dis('convo-input',false);
   if(correction&&correction.errors&&correction.errors.length){ convoAddCorrection(correction.errors); convoErrors=convoErrors.concat(correction.errors); }
+  if(correction){
+    recordAttribution(correction); // roadmap tudásszint frissítése a fordulóból
+    var errN = (correction.errors && correction.errors.length) || 0;
+    logSkillResult('speaking', errN===0 ? 1 : Math.max(0, 1 - errN/3), 1);
+  }
   convoHistory.push({role:'claude',content:reply});
   convoAddBubble('claude',reply);
   if(convoTTSEnabled) convoSpeak(reply);
@@ -3088,7 +3156,7 @@ async function convoGetReplyText(){
 
 async function convoCheckErrors(text){
   try{
-    var r=await claude('Grammar checker. Check this English text for errors. Return ONLY JSON: {"errors":[{"wrong":"exact phrase","right":"corrected","type":"grammar|typo|style","explanation":"brief HU explanation"}]}. If no errors return {"errors":[]}. Max 3 most important errors.','Check: "'+text+'"',400);
+    var r=await claude('Grammar checker. Check this English text for errors. Return ONLY JSON: {"errors":[{"wrong":"exact phrase","right":"corrected","type":"grammar|typo|style","explanation":"brief HU explanation"}],"topics_ok":[],"topics_wrong":[]}. If no errors, errors=[]. Max 3 most important errors. For topics_ok/topics_wrong use ONLY ids from this list — TOPICS: '+roadmapTopicsForPrompt()+'. topics_wrong = grammar topics the student got WRONG; topics_ok = topics clearly used CORRECTLY. Empty arrays if unsure.','Check: "'+text+'"',500);
     return safeParseJSON(r);
   } catch(e){ return null; }
 }
