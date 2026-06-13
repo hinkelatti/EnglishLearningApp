@@ -11,9 +11,6 @@
 .selected-bar{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:38px;padding:7px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);margin:8px 0}
 
 /* Generáló doboz */
-.gen-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;margin-bottom:1.2rem}
-.gen-box-title{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.8rem;display:flex;align-items:center;gap:6px}
-.gen-box-title span{background:var(--accent);color:#fff;font-size:.68rem;padding:2px 7px;border-radius:99px}
 .gen-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
 .gen-row textarea{flex:1;min-width:200px}
 .gen-level-row{display:flex;gap:5px;margin:8px 0}

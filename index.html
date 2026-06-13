@@ -53,8 +53,22 @@
       </div>
       <div id="sub-translate-text" class="sub-panel active">
         <div class="section-title">Szöveg generálás</div>
-        <div class="section-sub">Fordíts le egy szöveget, vagy generálj újat — a szöveg automatikusan átkerül a Saját fordítás és Szövegértés fülekre.</div>
-        <textarea id="hu-in" rows="6" placeholder="Ide másold be a szöveget (cikk, e-mail, bármilyen tartalom)..."></textarea>
+        <div class="section-sub">Másolj be szöveget a fordításhoz, vagy hagyd üresen és válassz témát új szöveg generálásához. Ha mindkettő van, a szöveget a téma/utasítás szerint alakítja át.</div>
+        <div class="gentext-cols">
+          <div class="gentext-col">
+            <label>Bemásolt szöveg <span class="gentext-hint">(fordításhoz)</span></label>
+            <textarea id="hu-in" rows="8" oninput="updateGenActionBtn()" placeholder="Ide másold be a szöveget (cikk, e-mail, bármi). Ha üres, új szöveget generálok."></textarea>
+          </div>
+          <div class="gentext-col">
+            <label>Téma <span class="gentext-hint">(generáláshoz / módosításhoz)</span></label>
+            <div id="gen-topic-chips" class="gen-topic-chips"></div>
+            <div id="gen-topic-selected" style="display:none;font-size:.82rem;color:var(--accent);margin:.4rem 0">
+              <span id="gen-topic-selected-label"></span>
+              <button onclick="genClearTopic()" style="background:none;border:none;cursor:pointer;color:var(--muted);margin-left:4px">✕</button>
+            </div>
+            <textarea id="gen-context" rows="2" placeholder="Szabadszöveges téma vagy utasítás — pl. 'IT security proposal', 'use Past Simple'..."></textarea>
+          </div>
+        </div>
         <div style="margin-top:12px;display:flex;gap:1.2rem;align-items:flex-start;flex-wrap:wrap">
           <div>
             <label style="margin-bottom:6px">Kimeneti nyelv</label>
@@ -75,12 +89,12 @@
           </div>
         </div>
         <div class="row">
-          <button class="btn btn-gold" id="btn-tr" onclick="doTranslate()">Átalakítás <span id="btn-level-label">B1</span> EN-re</button>
+          <button class="btn btn-gold" id="btn-tr" onclick="doTextAction()">Generálás B1 EN</button>
           <button class="btn btn-outline" onclick="doClear()">Törlés</button>
         </div>
-        <div id="tr-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Fordítás folyamatban...</div>
+        <div id="tr-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Feldolgozás...</div>
         <div id="tr-result" style="display:none;margin-top:1.2rem">
-          <label id="tr-result-label" style="margin-bottom:6px">Angol fordítás</label>
+          <label id="tr-result-label" style="margin-bottom:6px">Eredmény</label>
           <div id="tr-text" class="translated-box"></div>
           <hr class="divider">
           <label>Kijelölt szavak Anki kártyahoz</label>
@@ -89,37 +103,6 @@
             <button class="btn btn-gold" id="btn-gen" style="display:none" onclick="doGenCards()">Kártyák generálása</button>
           </div>
           <div id="gen-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Kártyák készítése...</div>
-        </div>
-
-        <hr class="divider" style="margin:1.5rem 0"/>
-        <div class="gen-box" id="gen-box-section">
-          <div class="gen-box-title"><span>AI</span> <span id="gentext-label">Szöveg generálása</span></div>
-          <div id="gen-topic-chips" class="gen-topic-chips"></div>
-          <div id="gen-topic-selected" style="display:none;font-size:.82rem;color:var(--accent);margin-bottom:.4rem">
-            <span id="gen-topic-selected-label"></span>
-            <button onclick="genClearTopic()" style="background:none;border:none;cursor:pointer;color:var(--muted);margin-left:4px">✕</button>
-          </div>
-          <textarea id="gen-context" rows="2" placeholder="Szabadszöveges kiegészítés vagy téma — pl. 'IT security proposal', 'use Past Simple'..."></textarea>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-            <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-size:.78rem;color:var(--muted)">Irány:</span>
-              <button class="writing-dir-btn active" id="dir-en" onclick="setGenDir('en',this)">EN</button>
-              <button class="writing-dir-btn" id="dir-hu" onclick="setGenDir('hu',this)">HU</button>
-            </div>
-            <div class="gen-level-row">
-              <button class="gen-lvl-btn" onclick="selectGenLevel('A1',this)">A1</button>
-              <button class="gen-lvl-btn" onclick="selectGenLevel('A2',this)">A2</button>
-              <button class="gen-lvl-btn active" onclick="selectGenLevel('B1',this)">B1</button>
-              <button class="gen-lvl-btn" onclick="selectGenLevel('B2',this)">B2</button>
-              <button class="gen-lvl-btn" onclick="selectGenLevel('C1',this)">C1</button>
-            </div>
-            <button class="btn btn-gold" id="btn-gentext" onclick="doGenText()">Generálás</button>
-          </div>
-          <div id="gentext-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Generálás...</div>
-          <div id="gen-result-preview" style="display:none;margin-top:.8rem">
-            <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">Generált szöveg</div>
-            <div id="gen-result-text" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem;font-size:.88rem;line-height:1.7;white-space:pre-wrap"></div>
-          </div>
         </div>
       </div>
       <div id="sub-translate-writing" class="sub-panel">

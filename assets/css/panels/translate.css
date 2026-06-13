@@ -8,6 +8,13 @@
 
 /* Írás / kétoszlopos elrendezés */
 .writing-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:.8rem}
+/* Szöveg generálás: bemásolás + témajavasló két hasábban */
+.gentext-cols{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.gentext-col{display:flex;flex-direction:column;min-width:0}
+.gentext-col>label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.gentext-col textarea{width:100%;box-sizing:border-box}
+.gentext-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)}
+@media(max-width:640px){.gentext-cols{grid-template-columns:1fr}}
 .writing-col-label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:5px}
 .col-badge{padding:2px 7px;border-radius:99px;font-size:.69rem;font-weight:500}
 .badge-en{background:rgba(45,95,128,.1);color:var(--accent3);border:1px solid rgba(45,95,128,.2)}

@@ -8,7 +8,7 @@ var currentModalId=null;
 // STATE VARIABLES
 // ============================================================
 var apiKey = '', trText = '', huText = '', selWords = new Set();
-var selectedLevel = 'B1', genLevel = 'B1', genDir = 'en', trOutLang = 'en';
+var selectedLevel = 'B1', genDir = 'en', trOutLang = 'en';
 var writingDir = 'en-hu', genSelectedTopic = '';
 var writingType = 'general', emailTone = 'formal';
 var allCards = JSON.parse(localStorage.getItem('anki_cards') || '[]');
@@ -28,7 +28,6 @@ var phraseStats = {uploaded:0, failed:0, total:0};
 var bulkQueue = [], bulkIdx = 0, bulkRunning = false;
 var bulkStats = {uploaded:0, skipped:0, failed:0, total:0};
 var oxPage = 0, OX_PAGE_SIZE = 50;
-var genLevel = 'B1';
 
 // ============================================================
 // SZINKRON TÁROLÓ — localStorage cache + Cloudflare D1 write-through
@@ -1360,7 +1359,7 @@ function showMain(name, el){
   if(el) el.classList.add('active');
   Store.set('active_main', name);
   if(name==='roadmap'){ initProgressPanel(); }
-  if(name==='translate'){ renderGenTopics(); }
+  if(name==='translate'){ renderGenTopics(); updateGenActionBtn(); }
   if(name==='oxford'){ oxLoad(); oxPhraseLoad(); oxPage=0; renderOxWordlist(); }
   if(name==='convo'){ renderTopicPicker(); }
   if(name==='tenses'){ renderTenseSelector(); }
@@ -1385,7 +1384,7 @@ function showSub(panel, sub, el){
   }
   if(panel==='translate' && sub==='comprehension') compInit();
   if(panel==='translate' && sub==='uzleti'){}
-  if(panel==='translate' && sub==='text') renderGenTopics();
+  if(panel==='translate' && sub==='text'){ renderGenTopics(); updateGenActionBtn(); }
   if(panel==='roadmap' && sub==='overview'){ renderProgressOverview(); ankiRefreshActivity(); }
   if(panel==='roadmap' && sub==='vocab'){ oxLoad(); oxPhraseLoad(); renderVocabDashboard(); }
   if(panel==='roadmap' && sub==='map'){ renderRoadmap(); updateRoadmapProgress(); }
@@ -1426,16 +1425,14 @@ function doClear(){
   trText = ''; huText = '';
   hide('tr-result');
   document.getElementById('gr-result') && (document.getElementById('gr-result').innerHTML = '');
+  updateGenActionBtn();
 }
 
 function selectLevel(level, el){
   selectedLevel = level;
   document.querySelectorAll('.lvl-btn').forEach(function(b){ b.classList.remove('active'); });
   if(el) el.classList.add('active');
-  var ll = document.getElementById('btn-level-label');
-  if(ll) ll.textContent = level;
-  var btn = document.getElementById('btn-tr');
-  if(btn) btn.innerHTML = 'Átalakítás <span id="btn-level-label">'+level+'</span> '+(trOutLang==='en'?'EN-re':'HU-ra');
+  updateGenActionBtn();
 }
 
 function setTrOutLang(lang, el){
@@ -1445,25 +1442,43 @@ function setTrOutLang(lang, el){
     if(b) b.classList.remove('active');
   });
   if(el) el.classList.add('active');
+  updateGenActionBtn();
+}
+
+// A gomb szövege a bemenettől függ: van szöveg → fordítás, nincs → generálás
+function updateGenActionBtn(){
   var btn = document.getElementById('btn-tr');
-  var ll = document.getElementById('btn-level-label');
-  var lvl = ll ? ll.textContent : selectedLevel;
-  if(btn) btn.innerHTML = 'Átalakítás <span id="btn-level-label">'+lvl+'</span> '+(lang==='en'?'EN-re':'HU-ra');
+  if(!btn) return;
+  var hasText = ((document.getElementById('hu-in')||{}).value || '').trim().length > 0;
+  var langTxt = trOutLang==='en' ? 'EN' : 'HU';
+  btn.textContent = hasText ? ('Átalakítás '+selectedLevel+' '+langTxt+'-re') : ('Generálás '+selectedLevel+' '+langTxt);
+}
+
+// Egyetlen, kontextusfüggő művelet: ha van bemásolt szöveg → fordítás (téma/utasítás
+// szerint módosítva), ha nincs → generálás (kiválasztott téma vagy véletlenszerű).
+function doTextAction(){
+  var hasText = ((document.getElementById('hu-in')||{}).value || '').trim().length > 0;
+  if(hasText) doTranslate();
+  else doGenText();
 }
 
 async function doTranslate(){
   var inp = getInputText();
   if(!inp) return;
   var lvl = selectedLevel;
+  // Ha van téma/utasítás is, a fordítást aszerint módosítjuk
+  var ctx = (document.getElementById('gen-context')||{}).value || '';
+  var mod = [genSelectedTopic, ctx.trim()].filter(Boolean).join('. ');
+  var modNote = mod ? ' Then adapt/rewrite the content according to these instructions: "'+mod+'", while keeping it natural at the level.' : '';
   dis('btn-tr', true); show('tr-loading'); hide('tr-result');
   try{
     var sysPrompt, userPrompt;
     if(trOutLang==='en'){
-      sysPrompt='You are an English teacher. The input may be Hungarian OR English. If Hungarian, translate to English. If already English, rewrite at exactly '+lvl+' CEFR level keeping ALL meaning. Output ONLY the resulting English text.';
+      sysPrompt='You are an English teacher. The input may be Hungarian OR English. If Hungarian, translate to English. If already English, rewrite at exactly '+lvl+' CEFR level keeping ALL meaning.'+modNote+' Output ONLY the resulting English text.';
       userPrompt='Output '+lvl+' English:\n\n'+inp;
       huText = inp;
     } else {
-      sysPrompt='You are a Hungarian teacher. The input may be English OR Hungarian. If English, translate to Hungarian. If already Hungarian, rewrite at exactly '+lvl+' CEFR level keeping ALL meaning. Output ONLY the resulting Hungarian text.';
+      sysPrompt='You are a Hungarian teacher. The input may be English OR Hungarian. If English, translate to Hungarian. If already Hungarian, rewrite at exactly '+lvl+' CEFR level keeping ALL meaning.'+modNote+' Output ONLY the resulting Hungarian text.';
       userPrompt='Output '+lvl+' Hungarian:\n\n'+inp;
     }
     var r = await claude(sysPrompt, userPrompt);
@@ -2196,14 +2211,6 @@ function setWritingDir(dir, el){
   if(el) el.classList.add('active');
 }
 
-function setGenDir(dir, el){
-  genDir = dir;
-  document.querySelectorAll('#gen-box-section .writing-dir-btn').forEach(function(b){ b.classList.remove('active'); });
-  if(el) el.classList.add('active');
-  var label = document.getElementById('gentext-label');
-  if(label) label.textContent = dir==='en' ? 'Angol szöveg generálása' : 'Magyar szöveg generálása';
-}
-
 function renderGenTopics(){
   var container = document.getElementById('gen-topic-chips');
   if(!container) return;
@@ -2233,39 +2240,36 @@ function genClearTopic(){
   if(sel) sel.style.display='none';
 }
 
-function selectGenLevel(level, el){
-  genLevel = level;
-  document.querySelectorAll('.gen-lvl-btn').forEach(function(b){ b.classList.remove('active'); });
-  if(el) el.classList.add('active');
-}
-
 async function doGenText(){
-  var context = document.getElementById('gen-context').value.trim();
-  dis('btn-gentext', true); show('gentext-loading');
-  var topicStr = genSelectedTopic || context || (genDir==='en' ? 'business communication' : 'üzleti kommunikáció');
+  var context = ((document.getElementById('gen-context')||{}).value || '').trim();
+  var lvl = selectedLevel, outLang = trOutLang; // közös szint + kimeneti nyelv
+  dis('btn-tr', true); show('tr-loading'); hide('tr-result');
+  var topicStr = genSelectedTopic || context || (outLang==='en' ? 'business communication' : 'üzleti kommunikáció');
   var extraNote = (genSelectedTopic && context) ? ' Additional notes: '+context : '';
   try{
     var r = await claude(
-      genDir==='en'
-        ? 'Generate a natural English text at '+genLevel+' CEFR level. Topic: "'+topicStr+'".'+extraNote+' Length: 60-100 words. Output ONLY the English text, no title, no explanation.'
-        : 'Generate a natural Hungarian text at '+genLevel+' CEFR level difficulty. Topic: "'+topicStr+'".'+extraNote+' Length: 60-100 words. Output ONLY the Hungarian text, no title, no explanation.',
+      outLang==='en'
+        ? 'Generate a natural English text at '+lvl+' CEFR level. Topic: "'+topicStr+'".'+extraNote+' Length: 60-100 words. Output ONLY the English text, no title, no explanation.'
+        : 'Generate a natural Hungarian text at '+lvl+' CEFR level difficulty. Topic: "'+topicStr+'".'+extraNote+' Length: 60-100 words. Output ONLY the Hungarian text, no title, no explanation.',
       'Generate the text.'
     );
     var generated = r.trim();
-    if(genDir==='en'){ trText=generated; huText=''; }
-    else { huText=generated; trText=''; }
-    var src = document.getElementById('writing-source');
-    if(src) src.value = generated;
-    var preview = document.getElementById('gen-result-preview');
-    var previewText = document.getElementById('gen-result-text');
-    if(preview && previewText){ previewText.textContent=generated; preview.style.display='block'; }
-    var cr = document.getElementById('check-result');
-    if(cr) cr.innerHTML='';
+    trText = generated; huText = (outLang==='hu') ? generated : '';
+    genDir = outLang;
+    renderTrText(generated); // ugyanabba a kattintható dobozba kerül, mint a fordítás
+    var langLabel = (outLang==='en' ? lvl+' angol' : lvl+' magyar') + ' (generált)';
+    var lbl = document.getElementById('tr-result-label');
+    if(lbl) lbl.innerHTML = langLabel+' — <span style="text-transform:none;letter-spacing:0;color:var(--faint)">kattints egy szóra</span>';
+    var gr = document.getElementById('gr-result'); if(gr) gr.innerHTML='';
+    var src = document.getElementById('writing-source'); if(src) src.value = generated;
+    var cr = document.getElementById('check-result'); if(cr) cr.innerHTML='';
     updateWritingLabels();
+    show('tr-result');
   } catch(e){
-    document.getElementById('gentext-loading').insertAdjacentHTML('afterend','<div class="err">Hiba: '+e.message+'</div>');
+    document.getElementById('tr-text').innerHTML = '<div class="err">Hiba: '+e.message+'</div>';
+    show('tr-result');
   }
-  hide('gentext-loading'); dis('btn-gentext', false);
+  hide('tr-loading'); dis('btn-tr', false);
 }
 
 async function doCheck(){
