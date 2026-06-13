@@ -1539,12 +1539,24 @@ async function doTranslate(){
     var langLabel = trOutLang==='en' ? lvl+' angol' : lvl+' magyar';
     document.getElementById('tr-result-label').innerHTML = langLabel+' — <span style="text-transform:none;letter-spacing:0;color:var(--faint)">kattints egy szóra</span>';
     document.getElementById('gr-result').innerHTML = '';
+    syncCompText(trText); // Szövegértés doboz frissítése az új szövegre
     show('tr-result');
   } catch(e){
     document.getElementById('tr-text').innerHTML = '<div class="err">Hiba: '+e.message+'</div>';
     show('tr-result');
   }
   hide('tr-loading'); dis('btn-tr', false);
+}
+
+// A generált/fordított szöveget átviszi a Szövegértés dobozba, és elavulttá teszi
+// a meglévő kérdéseket → a fülre lépéskor (compInit) frissül a szöveg + új kérdések.
+function syncCompText(text){
+  var el = document.getElementById('comp-text-display');
+  if(el) el.value = text || '';
+  var nt = document.getElementById('comp-no-text'); if(nt) nt.style.display = text ? 'none' : 'block';
+  compQuestions = [];
+  var cw = document.getElementById('comp-questions-wrap'); if(cw) cw.innerHTML='';
+  var crr = document.getElementById('comp-result'); if(crr) crr.innerHTML='';
 }
 
 function renderTrText(text){
@@ -2314,6 +2326,7 @@ async function doGenText(){
     var gr = document.getElementById('gr-result'); if(gr) gr.innerHTML='';
     var src = document.getElementById('writing-source'); if(src) src.value = generated;
     var cr = document.getElementById('check-result'); if(cr) cr.innerHTML='';
+    syncCompText(generated); // Szövegértés doboz frissítése az új szövegre
     updateWritingLabels();
     show('tr-result');
   } catch(e){
