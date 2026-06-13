@@ -1215,6 +1215,11 @@ function show(id){ var e=document.getElementById(id); if(e) e.style.display='blo
 function hide(id){ var e=document.getElementById(id); if(e) e.style.display='none'; }
 function dis(id, v){ var e=document.getElementById(id); if(e) e.disabled=v; }
 
+// Pontszám 0–10 skálára normálva (ha az AI 0–100-at adott, leosztjuk)
+function norm10(s){ s = +s || 0; if(s > 10) s = s/10; return Math.max(0, Math.min(10, s)); }
+// Megjelenítés: egész, vagy 1 tizedes ha tört
+function scDisp(s){ return (Math.round(s*10)/10).toString().replace('.', ','); }
+
 function safeParseJSON(text){
   if(!text) return {};
   var t = text.trim();
@@ -1789,9 +1794,10 @@ async function checkUzletiAnswer(){
       2000
     );
     var d = safeParseJSON(r);
-    if(typeof d.score === 'number'){ logSkillResult('writing', d.score/10, 1); recordAttribution(d.roadmap); }
-    var scoreColor = d.score>=8?'var(--success)':d.score>=6?'var(--accent)':'var(--danger)';
-    var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+d.score+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+'</span></div>';
+    var sc = norm10(d.score);
+    if(typeof d.score === 'number'){ logSkillResult('writing', sc/10, 1); recordAttribution(d.roadmap); }
+    var scoreColor = sc>=8?'var(--success)':sc>=6?'var(--accent)':'var(--danger)';
+    var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+scDisp(sc)+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+'</span></div>';
 
     if(d.corrected_text){
       html += '<div class="corrected-text-box">'
@@ -2329,15 +2335,16 @@ async function doCheck(){
   document.getElementById('check-result').innerHTML = '';
   try{
     var r = await claude(
-      'You are an English teacher for Hungarian B1 learners. ' + getWritingTypePrompt() + ' ALL text fields in Hungarian. Return ONLY a single line of valid JSON, no markdown, no newlines inside strings. Schema: {"score":0,"overall":"","positives":[],"corrected_text":"","corrections":[{"type":"grammar","wrong":"","right":"","explanation":""}],"roadmap":{"topics_ok":[],"topics_wrong":[]}}. Fill all fields. Escape any quotes inside strings. For "roadmap": classify grammar topics from this list — TOPICS: '+roadmapTopicsForPrompt()+'. topics_wrong = ids whose grammar the student got WRONG; topics_ok = ids the student clearly used CORRECTLY. Use ONLY ids from the list; empty arrays if unsure.',
+      'You are an English teacher for Hungarian B1 learners. ' + getWritingTypePrompt() + ' ALL text fields in Hungarian. Return ONLY a single line of valid JSON, no markdown, no newlines inside strings. Schema: {"score":0-10,"overall":"","positives":[],"corrected_text":"","corrections":[{"type":"grammar","wrong":"","right":"","explanation":""}],"roadmap":{"topics_ok":[],"topics_wrong":[]}}. "score" is on a 0-10 scale. Fill all fields. Escape any quotes inside strings. For "roadmap": classify grammar topics from this list — TOPICS: '+roadmapTopicsForPrompt()+'. topics_wrong = ids whose grammar the student got WRONG; topics_ok = ids the student clearly used CORRECTLY. Use ONLY ids from the list; empty arrays if unsure.',
       (isHuEn
         ? 'Source Hungarian text:\n"'+sourceText.substring(0,600)+'"\n\nStudent English translation:\n"'+my+'"'
         : 'Source English text:\n"'+sourceText.substring(0,600)+'"\n\nStudent Hungarian translation:\n"'+my+'"')
     );
     var d = safeParseJSON(r);
-    if(typeof d.score === 'number'){ logSkillResult('writing', d.score/10, 1); recordAttribution(d.roadmap); }
-    var scoreColor = d.score>=8?'var(--success)':d.score>=6?'var(--accent)':'var(--danger)';
-    var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+d.score+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+' </span></div>';
+    var sc = norm10(d.score);
+    if(typeof d.score === 'number'){ logSkillResult('writing', sc/10, 1); recordAttribution(d.roadmap); }
+    var scoreColor = sc>=8?'var(--success)':sc>=6?'var(--accent)':'var(--danger)';
+    var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+scDisp(sc)+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+' </span></div>';
     if(d.corrected_text){
       html += '<div class="corrected-text-box">'
         + '<div class="corrected-text-label">✓ Helyes fordítás</div>'
