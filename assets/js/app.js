@@ -559,6 +559,57 @@ function recordAttribution(attr){
   if(Array.isArray(attr.topics_wrong)) attr.topics_wrong.forEach(function(id){ addItemEvidence(id, 0, 1); });
 }
 
+// Élő tudásszint egy roadmap-elemre az összes eredményből (item_evidence).
+//  - A pontszám recency-súlyozott pontosság (újabb esemény többet nyom, naptári kopás nincs).
+//  - A mennyiség csak belépő-kapu a zöldhöz; helyes éles használat teljes értékű.
+//  - Csak hiba ront (zöld→narancs). Adat híján a kézi státuszt tükrözi.
+var MASTERY_GATE = 6;     // ennyi esemény kell a zöld jogosultsághoz
+var MASTERY_GREEN = 0.8;  // recency-súlyozott pontosság küszöbe a zöldhöz
+var MASTERY_DECAY = 0.85; // recency-súly: a legutolsó esemény súlya 1, a régebbiek fakulnak
+function itemMastery(id){
+  var ev = (JSON.parse(localStorage.getItem('item_evidence')||'{}'))[id];
+  var events = (ev && ev.events) ? ev.events : [];
+  var manual = grStatuses[id] || 'todo';
+  if(!events.length){
+    // nincs mért adat → a kézi státuszt mutatjuk
+    if(manual==='done')     return {state:'green',  score:100, count:0, lastSeen:null, manual:true};
+    if(manual==='learning') return {state:'orange', score:40,  count:0, lastSeen:null, manual:true};
+    return {state:'grey', score:0, count:0, lastSeen:null, manual:false};
+  }
+  var n=events.length, wSum=0, acc=0;
+  for(var i=0;i<n;i++){ var w=Math.pow(MASTERY_DECAY, n-1-i); wSum+=w; acc+=w*events[i]; }
+  var accuracy = wSum ? acc/wSum : 0;
+  var count = (ev.correct||0) + (ev.wrong||0);
+  var state = (count>=MASTERY_GATE && accuracy>=MASTERY_GREEN) ? 'green' : 'orange';
+  return {state:state, score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen, manual:false};
+}
+
+function masteryTip(m){
+  if(m.state==='grey') return 'Még nem gyakoroltad';
+  if(m.manual) return m.state==='green' ? 'Kézzel teljesítettre állítva' : 'Kézzel tanulás alattra állítva';
+  return m.count+'× gyakorolva · '+m.score+'% pontosság'+(m.lastSeen?' · utoljára: '+m.lastSeen:'');
+}
+
+function masteryBarHtml(id){
+  var m = itemMastery(id);
+  var colors = {grey:'var(--border2)', orange:'#f59e0b', green:'#22c55e'};
+  var w = m.state==='grey' ? 0 : Math.max(8, m.score);
+  return '<div class="mastery-bar" title="'+masteryTip(m)+'"><div class="mastery-fill" style="width:'+w+'%;background:'+colors[m.state]+'"></div></div>';
+}
+
+// A modál tetején: "milyen a tudásom ott" — szöveges állapot + sáv
+function masteryModalHtml(id){
+  var m = itemMastery(id);
+  var labels = {grey:'Még nem foglalkoztál vele', orange:'Gyakorlod — még (vagy már megint) nem megy elég jól', green:'Eleget gyakoroltad és jól megy'};
+  var colors = {grey:'var(--muted)', orange:'#f59e0b', green:'#22c55e'};
+  return '<div class="mastery-modal">'
+    + '<div class="mastery-modal-head"><span style="color:'+colors[m.state]+';font-weight:600">'+labels[m.state]+'</span>'
+    + (m.state!=='grey' && !m.manual ? '<span class="mastery-modal-sub">'+m.count+'× gyakorolva · '+m.score+'% pontosság'+(m.lastSeen?' · utoljára: '+m.lastSeen:'')+'</span>' : '')
+    + '</div>'
+    + masteryBarHtml(id)
+    + '</div>';
+}
+
 // A jelenleg aktív fő panel és Fordítás-aldfül — az időmérő kategóriájához kell
 var _activeMain = 'roadmap', _activeTranslateSub = 'text';
 
@@ -2508,6 +2559,7 @@ function renderRoadmap(){
         '<div class="grammar-box-title-en">'+(item.en||item.title)+'</div>'+
         (item.en?'<div class="grammar-box-title-hu">'+item.title+'</div>':'')+
         '<div class="grammar-box-sub">'+item.sub+'</div>'+
+        masteryBarHtml(item.id)+
         '</div>';
     }).join('');
     return '<div class="roadmap-band cefr-band-'+band.level.toLowerCase()+'">'+'<div class="band-label"><span class="cefr-pill">'+band.level+'</span><span class="band-sub">'+band.sub+'</span></div>'+'<div class="grammar-grid">'+items+'</div></div>';
@@ -2536,7 +2588,7 @@ function openModal(id){
   if(!modal||!title||!body) return;
   title.textContent=(item.en||item.title)+(item.en?' — '+item.title:'');
   updateStatusBtns(status);
-  var html = renderRoadmapItem(item);
+  var html = masteryModalHtml(id) + renderRoadmapItem(item);
   body.innerHTML = html;
   modal.style.display='flex';
 }
@@ -2558,6 +2610,8 @@ function setGrStatus(status){
     box.className='grammar-box status-'+status;
     var icon=box.querySelector('.grammar-box-status');
     if(icon) icon.textContent=status==='done'?'✅':status==='learning'?'🔵':'⬜';
+    var bar=box.querySelector('.mastery-bar'); // a sáv is frissüljön (adat híján a kézi státuszt tükrözi)
+    if(bar) bar.outerHTML=masteryBarHtml(currentModalId);
   }
   updateRoadmapProgress();
 }
