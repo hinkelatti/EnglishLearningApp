@@ -951,108 +951,6 @@ function renderLevelPanel(){
 }
 
 // ============================================================
-// HETI NAPLÓ
-// ============================================================
-
-function weeklyLogStart() {
-  weeklyAnswers = [];
-  weeklyQIdx = 0;
-  document.getElementById('weekly-log-interview').style.display = 'block';
-  document.getElementById('weekly-log-summary').style.display = 'none';
-  document.getElementById('btn-weekly-start').style.display = 'none';
-  renderWeeklyQuestion();
-}
-
-function renderWeeklyQuestion() {
-  var wrap = document.getElementById('weekly-q-wrap');
-  if (!wrap) return;
-  var q = WEEKLY_QUESTIONS[weeklyQIdx];
-  wrap.innerHTML = '<div class="weekly-q-box">'
-    + '<div class="weekly-q-label">' + (weeklyQIdx + 1) + ' / ' + WEEKLY_QUESTIONS.length + '. kérdés</div>'
-    + '<div class="weekly-q-text">' + q.q + '</div>'
-    + '<textarea id="weekly-ans-input" rows="3" placeholder="Válaszolj őszintén..."></textarea>'
-    + '</div>';
-  var inp = document.getElementById('weekly-ans-input');
-  if (inp) {
-    inp.focus();
-    inp.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && e.ctrlKey) weeklyLogNext();
-    });
-  }
-  var btn = document.getElementById('btn-weekly-next');
-  if (btn) btn.textContent = weeklyQIdx < WEEKLY_QUESTIONS.length - 1 ? 'Következő →' : 'Összefoglalás →';
-}
-
-async function weeklyLogNext() {
-  var inp = document.getElementById('weekly-ans-input');
-  var ans = inp ? inp.value.trim() : '';
-  weeklyAnswers.push({ q: WEEKLY_QUESTIONS[weeklyQIdx].q, a: ans });
-  weeklyQIdx++;
-  if (weeklyQIdx < WEEKLY_QUESTIONS.length) {
-    renderWeeklyQuestion();
-    return;
-  }
-  // Generate summary
-  document.getElementById('weekly-log-interview').style.display = 'none';
-  document.getElementById('weekly-log-summary').style.display = 'block';
-  document.getElementById('weekly-summary-content').textContent = 'Összefoglalás generálása...';
-  try {
-    var qa = weeklyAnswers.map(function(w, i) { return (i+1)+'. '+w.q+'\nVálasz: '+w.a; }).join('\n\n');
-    var r = await claude(
-      'You are an English learning coach. Summarize this weekly learning log in Hungarian. Be encouraging but honest. Note what went well, what needs work, and give 1-2 specific suggestions for next week. Keep it concise (5-8 sentences).',
-      'Weekly log:\n' + qa
-    );
-    document.getElementById('weekly-summary-content').textContent = r;
-  } catch (e) {
-    document.getElementById('weekly-summary-content').textContent = weeklyAnswers.map(function(w) { return w.q + '\n' + w.a; }).join('\n\n');
-  }
-}
-
-function weeklyLogSave() {
-  var summary = document.getElementById('weekly-summary-content').textContent;
-  var logs = JSON.parse(localStorage.getItem('weekly_logs') || '[]');
-  var now = new Date();
-  logs.unshift({
-    date: localDateStr(now),
-    week: 'W' + getWeekNumber(now),
-    answers: weeklyAnswers,
-    summary: summary
-  });
-  localStorage.setItem('weekly_logs', JSON.stringify(logs));
-  // Also append to log document
-  var logEl = document.getElementById('doc-log-text');
-  if (logEl) {
-    var entry = '\n## ' + localDateStr(now) + ' — Heti összefoglaló\n\n' + summary + '\n\n';
-    logEl.value = logEl.value + entry;
-    docSave('log');
-  }
-  weeklyLogReset();
-  renderWeeklyLogs();
-}
-
-function weeklyLogDiscard() { weeklyLogReset(); }
-
-function weeklyLogReset() {
-  document.getElementById('weekly-log-interview').style.display = 'none';
-  document.getElementById('weekly-log-summary').style.display = 'none';
-  document.getElementById('btn-weekly-start').style.display = 'inline-block';
-  weeklyAnswers = []; weeklyQIdx = 0;
-}
-
-function renderWeeklyLogs() {
-  var logs = JSON.parse(localStorage.getItem('weekly_logs') || '[]');
-  var wrap = document.getElementById('weekly-log-list');
-  if (!wrap) return;
-  if (!logs.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = logs.slice(0, 5).map(function(log) {
-    return '<div class="weekly-log-entry">'
-      + '<div class="weekly-log-entry-date">' + log.date + ' · ' + log.week + '</div>'
-      + '<div class="weekly-log-entry-summary">' + (log.summary || '').substring(0, 200) + '...</div>'
-      + '</div>';
-  }).join('');
-}
-
-// ============================================================
 // HIBAMINTÁK
 // ============================================================
 function addErrorPattern(wrong, right, type, explanation) {
@@ -1259,7 +1157,6 @@ function vocabChartsHtml(items, noun){
 function initProgressPanel() {
   docLoad();
   renderProgressOverview();
-  renderWeeklyLogs();
   renderErrorPatterns();
   ankiRefreshActivity(); // friss Anki review-idők a háttérben (ha fut az Anki)
 }
@@ -1487,7 +1384,6 @@ function showSub(panel, sub, el){
   if(panel==='roadmap' && sub==='overview'){ renderProgressOverview(); ankiRefreshActivity(); }
   if(panel==='roadmap' && sub==='vocab'){ oxLoad(); oxPhraseLoad(); renderVocabDashboard(); }
   if(panel==='roadmap' && sub==='map'){ renderRoadmap(); updateRoadmapProgress(); }
-  if(panel==='roadmap' && sub==='weekly') renderWeeklyLogs();
   if(panel==='roadmap' && sub==='errors') renderErrorPatterns();
   if(panel==='roadmap' && sub==='docs') docLoad();
 }

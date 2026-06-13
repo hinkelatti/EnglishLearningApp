@@ -130,16 +130,6 @@
 .nav-daily-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:1.2rem 0 .7rem}
 .nav-daily-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)}
 
-/* Heti napló */
-.weekly-log-new{margin-bottom:1rem}
-.weekly-q-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem;margin-bottom:1rem}
-.weekly-q-label{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
-.weekly-q-text{font-size:.95rem;font-weight:500;margin-bottom:.8rem;line-height:1.5}
-.weekly-summary-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:1rem 1.2rem;font-size:.88rem;line-height:1.8;white-space:pre-wrap}
-.weekly-log-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.9rem 1.2rem;margin-bottom:.6rem}
-.weekly-log-entry-date{font-size:.72rem;color:var(--muted);margin-bottom:.3rem}
-.weekly-log-entry-summary{font-size:.84rem;line-height:1.6}
-
 /* Hibaminták */
 .error-pattern-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.8rem 1rem;margin-bottom:.5rem}
 .error-pattern-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}

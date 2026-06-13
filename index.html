@@ -243,7 +243,6 @@
         <button class="sub-tab active" onclick="showSub('roadmap','overview',this)">Áttekintés</button>
         <button class="sub-tab" onclick="showSub('roadmap','vocab',this)">Szókincs</button>
         <button class="sub-tab" onclick="showSub('roadmap','map',this)">Roadmap</button>
-        <button class="sub-tab" onclick="showSub('roadmap','weekly',this)">Heti napló</button>
         <button class="sub-tab" onclick="showSub('roadmap','errors',this)">Hibaminták</button>
         <button class="sub-tab" onclick="showSub('roadmap','docs',this)">Dokumentumok</button>
       </div>
@@ -340,32 +339,6 @@
       </div>
 
       <!-- HETI NAPLÓ -->
-      <div id="sub-roadmap-weekly" class="sub-panel">
-        <div class="section-title">Heti napló</div>
-        <div class="section-sub">Claude feltesz néhány kérdést a hétről — válaszolj őszintén, ő összefoglalja és elmenti.</div>
-
-        <div id="weekly-log-list" style="margin-bottom:1.5rem"></div>
-
-        <div class="weekly-log-new">
-          <button class="btn btn-gold" onclick="weeklyLogStart()" id="btn-weekly-start">Új heti bejegyzés</button>
-        </div>
-
-        <div id="weekly-log-interview" style="display:none">
-          <div id="weekly-q-wrap"></div>
-          <div class="row" style="margin-top:1rem">
-            <button class="btn btn-gold" id="btn-weekly-next" onclick="weeklyLogNext()">Következő →</button>
-          </div>
-        </div>
-
-        <div id="weekly-log-summary" style="display:none">
-          <div class="section-label" style="margin-bottom:.5rem">Összefoglaló</div>
-          <div id="weekly-summary-content" class="weekly-summary-box"></div>
-          <div class="row" style="margin-top:1rem">
-            <button class="btn btn-gold" onclick="weeklyLogSave()">Mentés</button>
-            <button class="btn btn-outline" onclick="weeklyLogDiscard()">Elvet</button>
-          </div>
-        </div>
-      </div>
 
       <!-- HIBAMINTÁK -->
       <div id="sub-roadmap-errors" class="sub-panel">
@@ -875,7 +848,6 @@
   <script src="assets/js/data/grammar-exercises.js"></script>
   <script src="assets/js/data/convo-topics.js"></script>
   <script src="assets/js/data/doc-defaults.js"></script>
-  <script src="assets/js/data/weekly-questions.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
