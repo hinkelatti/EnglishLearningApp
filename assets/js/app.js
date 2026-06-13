@@ -1215,6 +1215,16 @@ function show(id){ var e=document.getElementById(id); if(e) e.style.display='blo
 function hide(id){ var e=document.getElementById(id); if(e) e.style.display='none'; }
 function dis(id, v){ var e=document.getElementById(id); if(e) e.disabled=v; }
 
+// Egyszeri migráció: a korábbi, irány nélkül rögzített 'writing' skill_results
+// bejegyzések törlése (EN→HU is beleszámolt). Csak egyszer fut (flag).
+function migrateClearWritingResults(){
+  if(localStorage.getItem('migr_clear_writing_v1')) return;
+  var arr = JSON.parse(localStorage.getItem('skill_results')||'[]');
+  var filtered = arr.filter(function(x){ return x && x.type !== 'writing'; });
+  if(filtered.length !== arr.length) Store.set('skill_results', filtered);
+  localStorage.setItem('migr_clear_writing_v1', '1');
+}
+
 // Pontszám 0–10 skálára normálva (ha az AI 0–100-at adott, leosztjuk)
 function norm10(s){ s = +s || 0; if(s > 10) s = s/10; return Math.max(0, Math.min(10, s)); }
 // Megjelenítés: egész, vagy 1 tizedes ha tört
@@ -1336,6 +1346,8 @@ function launchApp(){
     renderVocabDashboard();
     renderOxWordlist();
     renderPhrases();
+    migrateClearWritingResults(); // egyszeri: korábbi (irány nélküli) írás-eredmények törlése
+    renderProgressOverview();
   });
   // Társalgás TTS: mentett állapot visszatöltése (kapcsoló + tempó)
   var ttsBtn=document.getElementById('convo-tts-btn');
