@@ -716,16 +716,22 @@
           <span id="tense-select-summary">Témák kiválasztása</span>
           <span id="tense-select-arrow">▾</span>
         </button>
-        <div id="tense-select-grid" class="tense-select-grid"></div>
+        <div id="tense-setup-body">
+          <div class="tense-setup-label">Feladattípusok</div>
+          <div id="ex-type-chips" class="ex-type-chips"></div>
+          <div class="tense-setup-label" style="margin-top:1rem">Témák</div>
+          <div id="tense-select-grid" class="tense-select-grid"></div>
+        </div>
         <div class="row" style="margin-bottom:1.5rem">
           <button class="btn btn-gold" id="btn-start-ex" onclick="startExercises()">Gyakorlás indítása</button>
           <button class="btn btn-outline" onclick="selectAllTenses()">Mindet kiválaszt</button>
           <button class="btn btn-outline" onclick="deselectAllTenses()">Törlés</button>
         </div>
+        <div id="ex-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Feladatsor összeállítása...</div>
         <div id="exercise-area" style="display:none">
           <div id="ex-card-wrap"></div>
         </div>
-        <div id="ex-empty" style="display:none;padding:2rem;text-align:center;color:var(--faint)">Válassz legalább egy igeidőt a fenti listából!</div>
+        <div id="ex-empty" style="display:none;padding:2rem;text-align:center;color:var(--faint)">Válassz legalább egy témát és típust a gyakorláshoz.</div>
       </div>
 
       <div id="tpanel-builder" class="tpanel">

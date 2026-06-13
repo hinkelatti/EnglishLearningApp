@@ -30,6 +30,18 @@
 .select-collapse-header{display:flex;justify-content:space-between;align-items:center;width:100%;padding:.5rem .85rem;margin-bottom:.8rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;color:var(--text)}
 .select-collapse-header:hover{border-color:var(--accent)}
 #tense-select-arrow{font-size:.7rem;color:var(--muted)}
+/* Beállító-törzs + feladattípus-választó */
+.tense-setup-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+.ex-type-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.4rem}
+.ex-type-chip{padding:6px 12px;background:var(--surface);border:1.5px solid var(--border2);border-radius:99px;cursor:pointer;font-size:.8rem;font-family:'Inter',sans-serif;color:var(--muted);transition:all .15s}
+.ex-type-chip:hover{border-color:var(--accent);color:var(--text)}
+.ex-type-chip.selected{background:rgba(245,158,11,.16);border-color:#f59e0b;color:#f59e0b;font-weight:600}
+/* Mobil: kompaktabb gyakorló-kártya */
+@media(max-width:560px){
+  .ex-card{padding:1.1rem 1rem}
+  .ex-sentence-input{max-width:none;width:100%}
+  .ex-type-chip,.tense-chip{font-size:.78rem}
+}
 
 /* Igeidő checkbox-ok (régi igeidő-gyakorló) */
 .tense-chk{display:flex;align-items:center;gap:5px;padding:7px 14px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.84rem;color:var(--muted);transition:all .15s;user-select:none;flex-direction:column;align-items:flex-start;gap:2px}

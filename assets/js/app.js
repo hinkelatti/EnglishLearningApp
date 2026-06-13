@@ -2708,16 +2708,17 @@ function renderTenseSelector(){
     if(!id) return;
     toggleTense(id);
   };
+  renderExTypeChips();
   updateTenseSelectSummary();
 }
 
-// A témaválasztó panel össze-/kinyitása (a Mondatszerkesztéshez hasonlóan)
+// A beállító-törzs (típusok + témák) össze-/kinyitása
 function toggleTenseSelect(force){
-  var grid = document.getElementById('tense-select-grid');
+  var body = document.getElementById('tense-setup-body');
   var arrow = document.getElementById('tense-select-arrow');
-  if(!grid) return;
-  var open = (typeof force === 'boolean') ? force : (grid.style.display === 'none');
-  grid.style.display = open ? 'flex' : 'none';
+  if(!body) return;
+  var open = (typeof force === 'boolean') ? force : (body.style.display === 'none');
+  body.style.display = open ? 'block' : 'none';
   if(arrow) arrow.textContent = open ? '▾' : '▸';
 }
 
@@ -2725,7 +2726,41 @@ function updateTenseSelectSummary(){
   var el = document.getElementById('tense-select-summary');
   if(!el) return;
   var n = selectedTenses.size;
-  el.textContent = n ? ('Témák: '+n+' kiválasztva') : 'Témák kiválasztása';
+  var typeTxt = selectedExTypes.size===0 ? 'Auto' : selectedExTypes.size+' típus';
+  el.textContent = (n ? n+' téma' : 'Témák kiválasztása') + ' · ' + typeTxt;
+}
+
+// --- Feladattípus-választó (Auto + típusonként, mixelhető) ---
+var PRACTICE_TYPES = [
+  {key:'fill',      label:'Kiegészítés'},
+  {key:'choice',    label:'Feleletválasztós'},
+  {key:'error',     label:'Hibakeresés'},
+  {key:'transform', label:'Átalakítás'},
+  {key:'build',     label:'Mondatépítés'}
+];
+var selectedExTypes = new Set(); // üres = Auto (összes típus)
+
+function renderExTypeChips(){
+  var c = document.getElementById('ex-type-chips');
+  if(!c) return;
+  var auto = selectedExTypes.size === 0;
+  var html = '<button class="ex-type-chip'+(auto?' selected':'')+'" onclick="toggleExType(\'__auto\')">Auto (mind)</button>';
+  PRACTICE_TYPES.forEach(function(t){
+    html += '<button class="ex-type-chip'+(selectedExTypes.has(t.key)?' selected':'')+'" onclick="toggleExType(\''+t.key+'\')">'+t.label+'</button>';
+  });
+  c.innerHTML = html;
+}
+
+function toggleExType(key){
+  if(key === '__auto'){ selectedExTypes.clear(); }
+  else if(selectedExTypes.has(key)){ selectedExTypes.delete(key); }
+  else { selectedExTypes.add(key); }
+  renderExTypeChips();
+  updateTenseSelectSummary();
+}
+
+function eligibleExTypes(){
+  return selectedExTypes.size ? selectedExTypes : new Set(PRACTICE_TYPES.map(function(t){ return t.key; }));
 }
 
 function saveExerciseHistory(roadmapId, correct, total){
@@ -2784,32 +2819,59 @@ function deselectAllTenses(){
   updateTenseSelectSummary();
 }
 
-function startExercises(){
-  if(!selectedTenses.size){
-    var el = document.getElementById('ex-empty');
-    if(el) el.style.display = 'block';
-    return;
-  }
-  var el = document.getElementById('ex-empty');
-  if(el) el.style.display = 'none';
+var EX_QUEUE_MAX = 14; // egy gyakorlás-sor maximális hossza
+async function startExercises(){
+  var empty = document.getElementById('ex-empty');
+  if(!selectedTenses.size){ if(empty){ empty.textContent='Válassz legalább egy témát a gyakorláshoz.'; empty.style.display='block'; } return; }
+  if(empty) empty.style.display = 'none';
 
-  grExState.queue = [];
+  var eligible = eligibleExTypes();
+  document.getElementById('exercise-area').style.display = 'none';
+  show('ex-loading'); dis('btn-start-ex', true);
+
+  // Build top-up: ha a 'build' típus engedélyezett és egy igeidő-témához még nincs
+  // build a cache-ben, generálunk egyet (egyszer, utána a cache-ből megy).
+  if(eligible.has('build')){
+    var tids = Array.from(selectedTenses);
+    for(var ti=0; ti<tids.length; ti++){
+      var tid = tids[ti];
+      var titem = GRAMMAR_EXERCISES[tid];
+      if(!titem || titem.category !== 'tense') continue;
+      var tcache = JSON.parse(localStorage.getItem('ex_cache_'+tid) || '[]');
+      var hasBuild = titem.exercises.concat(tcache).some(function(ex){ return ex && ex.type==='build'; });
+      if(!hasBuild){
+        var b = await aiGenBuildItem(titem.name, titem.level);
+        if(b){ tcache.push(b); localStorage.setItem('ex_cache_'+tid, JSON.stringify(tcache)); }
+      }
+    }
+  }
+
+  // Sor összeállítása: kiválasztott témák × engedélyezett típusok, deduplikálva
+  var queue = [];
   selectedTenses.forEach(function(id){
     var item = GRAMMAR_EXERCISES[id];
     if(!item) return;
-    // Get cached AI exercises too
     var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
     var seen = {};
     item.exercises.concat(cached).forEach(function(ex){
-      if(!ex || !ex.type) return;
+      if(!ex || !ex.type || !eligible.has(ex.type)) return;
       var sig = exSignature(ex);
       if(seen[sig]) return; // ismétlődő feladat kiszűrése
       seen[sig] = true;
-      grExState.queue.push({roadmapId:id, itemName:item.name, level:item.level, ex:ex});
+      queue.push({roadmapId:id, itemName:item.name, level:item.level, ex:ex});
     });
   });
 
-  grExState.queue.sort(function(){ return Math.random() - 0.5; });
+  hide('ex-loading'); dis('btn-start-ex', false);
+
+  if(!queue.length){
+    if(empty){ empty.textContent='Ehhez a téma-/típusválasztáshoz nincs feladat. Generálj AI-val (🤖 Több feladat) vagy válassz más típust.'; empty.style.display='block'; }
+    return;
+  }
+
+  queue.sort(function(){ return Math.random() - 0.5; });
+  if(queue.length > EX_QUEUE_MAX) queue = queue.slice(0, EX_QUEUE_MAX);
+  grExState.queue = queue;
   grExState.idx = 0;
   grExState.score = {correct:0, total:0};
   grExState.perItem = {};
@@ -2818,7 +2880,7 @@ function startExercises(){
   grExState.preStates = {};
   selectedTenses.forEach(function(id){ grExState.preStates[id] = itemMastery(id).state; });
 
-  toggleTenseSelect(false); // gyakorlás indításakor a választó becsukódik (több hely)
+  toggleTenseSelect(false); // gyakorlás indításakor a beállítók becsukódnak (több hely)
   document.getElementById('exercise-area').style.display = 'block';
   renderGrExercise();
 }
