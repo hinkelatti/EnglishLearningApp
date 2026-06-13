@@ -786,19 +786,16 @@ function renderWeekNavigator() {
     var timeBarPct = Math.min(100, Math.round(wkTotal / NAV_WEEK_GOAL * 100));
     var ico = function(ok){ return ok ? '<span class="nav-ok">✓</span>' : '<span class="nav-warn">!</span>'; };
 
-    // Egy kategória-sor: halvány sávháttér + erős (felkúszó) tényleges érték + célvonás
-    function navCatRow(key, label, targetPct, frac, ok){
+    // Egy kategória-szegmens: a szélessége a célarány (50/25/25), benne a felkúszó
+    // tényleges (a célhoz viszonyított feltöltöttség), alatta név + elért% / cél%.
+    function navCatSeg(key, label, targetPct, frac, ok){
       var color = NAV_COLORS[key];
       var actPct = Math.round(frac*100);
-      return '<div class="nav-cat">'
-        + '<div class="nav-cat-head">'
-          + '<span class="nav-cat-name"><span class="wleg-dot" style="background:'+color+'"></span>'+label+'</span>'
-          + '<span class="nav-cat-val '+(ok?'nav-cat-ok':'nav-cat-warn')+'">'+ico(ok)+' '+actPct+'% <span class="nav-cat-goal">/ cél '+targetPct+'%</span></span>'
-        + '</div>'
-        + '<div class="nav-cat-track" style="background:'+hexA(color,0.14)+'">'
-          + '<div class="nav-cat-fill" style="width:'+Math.min(100,actPct)+'%;background:'+color+'"></div>'
-          + '<span class="nav-cat-tick" style="left:'+targetPct+'%"></span>'
-        + '</div>'
+      var fillPct = targetPct ? Math.min(100, Math.round(actPct/targetPct*100)) : 0;
+      return '<div class="nav-bal-cat" style="flex-grow:'+targetPct+'">'
+        + '<div class="nav-bal-bar" style="background:'+hexA(color,0.14)+'"><div class="nav-bal-fill" style="width:'+fillPct+'%;background:'+color+'"></div></div>'
+        + '<div class="nav-bal-lab"><span class="wleg-dot" style="background:'+color+'"></span>'+label+'</div>'
+        + '<div class="nav-bal-val '+(ok?'nav-cat-ok':'nav-cat-warn')+'">'+ico(ok)+' '+actPct+'%<span class="nav-cat-goal"> / '+targetPct+'%</span></div>'
       + '</div>';
     }
 
@@ -821,10 +818,10 @@ function renderWeekNavigator() {
         + '<span class="nav-days-met">'+ico(daysMet>0)+' '+daysMet+'/7 nap megvolt az 1 óra</span>'
       + '</div>'
       + '<div class="nav-time-track"><div class="nav-time-fill" style="width:'+timeBarPct+'%"></div></div>'
-      + '<div class="nav-cats">'
-        + navCatRow('input',      'Input',   50, p.input,      inOk)
-        + navCatRow('output',     'Output',  25, p.output,     outOk)
-        + navCatRow('deliberate', 'Tudatos', 25, p.deliberate, delOk)
+      + '<div class="nav-bal">'
+        + navCatSeg('input',      'Input',   50, p.input,      inOk)
+        + navCatSeg('output',     'Output',  25, p.output,     outOk)
+        + navCatSeg('deliberate', 'Tudatos', 25, p.deliberate, delOk)
       + '</div>'
       + '<div class="nav-verdict '+vClass+'">'+verdict+'</div>';
   }
