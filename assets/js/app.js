@@ -2758,7 +2758,7 @@ function updateTenseSelectSummary(){
   var el = document.getElementById('tense-select-summary');
   if(!el) return;
   var n = selectedTenses.size;
-  var typeTxt = selectedExTypes.size===0 ? 'Auto' : selectedExTypes.size+' típus';
+  var typeTxt = selectedExTypes.size===0 ? 'Mix' : selectedExTypes.size+' típus';
   var formTxt = selectedExForm==='any' ? '' : ' · '+({pos:'állítás',neg:'tagadás',q:'kérdés'}[selectedExForm]||'');
   el.textContent = (n ? n+' téma' : 'Témák kiválasztása') + ' · ' + typeTxt + formTxt;
 }
@@ -2777,7 +2777,7 @@ function renderExTypeChips(){
   var c = document.getElementById('ex-type-chips');
   if(!c) return;
   var auto = selectedExTypes.size === 0;
-  var html = '<button class="ex-type-chip'+(auto?' selected':'')+'" onclick="toggleExType(\'__auto\')">Auto (mind)</button>';
+  var html = '<button class="ex-type-chip'+(auto?' selected':'')+'" onclick="toggleExType(\'__auto\')">Mix</button>';
   PRACTICE_TYPES.forEach(function(t){
     html += '<button class="ex-type-chip'+(selectedExTypes.has(t.key)?' selected':'')+'" onclick="toggleExType(\''+t.key+'\')">'+t.label+'</button>';
   });
