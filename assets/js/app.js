@@ -603,7 +603,7 @@ var MASTERY_GATE = 15;    // ennyi (súlyozott) helyes/hibás esemény kell a z�
 var MASTERY_GREEN = 0.85; // recency-súlyozott pontosság küszöbe a zöldhöz
 var MASTERY_DECAY = 0.85; // recency-súly: a legutolsó esemény súlya 1, a régebbiek fakulnak
 var FORM_MIN = 2;         // igeidőknél formánként (állítás/tagadás/kérdés) ennyi súlyozott helyes kell
-var MASTERY_MIN_DAYS = 2; // ennyi KÜLÖN napon kell helyesen gyakorolni (spaced repetition)
+var MASTERY_MIN_DAYS = 3; // ennyi KÜLÖN napon kell helyesen gyakorolni (spaced repetition)
 
 // Igeidőknél a zöldhöz mindhárom formát demonstrálni kell (állítással önmagában nem elég).
 // Ha még nincs forma-adat (pl. csak éles produkció), a forma-kapu nem blokkol.
