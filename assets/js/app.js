@@ -525,21 +525,27 @@ function logSkillResult(type, score, count){
 
 // Roadmap-elem szintű bizonyíték: helyes/hibás használat egy nyelvtani témán.
 // A friss esemény többet nyom (lásd itemMastery), naptári kopás nincs — csak hiba ront.
-function addItemEvidence(roadmapId, correct, wrong){
+// weight: a feladat típusa szerinti súly (felismerés kevesebbet, produkció többet).
+function addItemEvidence(roadmapId, correct, wrong, weight){
   if(!roadmapId || !roadmapItem(roadmapId)) return; // csak valós roadmap-elem
   correct = correct||0; wrong = wrong||0;
   if(!correct && !wrong) return;
+  weight = weight || 1;
   var ev = JSON.parse(localStorage.getItem('item_evidence')||'{}');
   var e = ev[roadmapId] || {correct:0, wrong:0, events:[], lastSeen:null};
   e.correct += correct; e.wrong += wrong; e.lastSeen = getTodayStr();
-  // esemény-napló a recency-súlyozáshoz (csak az utolsó 40 marad)
+  // esemény-napló a recency-súlyozáshoz: {o:helyes?1:0, w:súly} — csak az utolsó 40 marad
   var k;
-  for(k=0; k<correct; k++) e.events.push(1);
-  for(k=0; k<wrong; k++) e.events.push(0);
+  for(k=0; k<correct; k++) e.events.push({o:1, w:weight});
+  for(k=0; k<wrong; k++) e.events.push({o:0, w:weight});
   if(e.events.length > 40) e.events = e.events.slice(-40);
   ev[roadmapId] = e;
   localStorage.setItem('item_evidence', JSON.stringify(ev));
 }
+
+// Feladattípus-súlyok az előrehaladáshoz (felismerés < irányított < produkció)
+var EX_WEIGHT = {choice:0.5, banked:0.75, matching:0.75, fill:1, error:1, wordform:1, cloze:1.5, transform:1.5, keyword:1.5, build:2};
+function exWeight(type){ return EX_WEIGHT[type] || 1; }
 
 // Kompakt roadmap-témalista a produkciós értékelő promptokhoz ("id = English name (Level)")
 function roadmapTopicsForPrompt(){
@@ -555,8 +561,9 @@ function roadmapTopicsForPrompt(){
 // Az AI által visszaadott attribúció rögzítése: {topics_ok:[id...], topics_wrong:[id...]}
 function recordAttribution(attr){
   if(!attr) return;
-  if(Array.isArray(attr.topics_ok))    attr.topics_ok.forEach(function(id){ addItemEvidence(id, 1, 0); });
-  if(Array.isArray(attr.topics_wrong)) attr.topics_wrong.forEach(function(id){ addItemEvidence(id, 0, 1); });
+  // Éles produkció (fordítás/írás/társalgás) — erős jel, súly 2
+  if(Array.isArray(attr.topics_ok))    attr.topics_ok.forEach(function(id){ addItemEvidence(id, 1, 0, 2); });
+  if(Array.isArray(attr.topics_wrong)) attr.topics_wrong.forEach(function(id){ addItemEvidence(id, 0, 1, 2); });
 }
 
 // Élő tudásszint egy roadmap-elemre az összes eredményből (item_evidence).
@@ -570,11 +577,19 @@ function itemMastery(id){
   var ev = (JSON.parse(localStorage.getItem('item_evidence')||'{}'))[id];
   var events = (ev && ev.events) ? ev.events : [];
   if(events.length){
-    var n=events.length, wSum=0, acc=0;
-    for(var i=0;i<n;i++){ var w=Math.pow(MASTERY_DECAY, n-1-i); wSum+=w; acc+=w*events[i]; }
-    var accuracy = wSum ? acc/wSum : 0;
+    // Súlyozott, recency-súlyozott pontosság; a kapu súlyozott mennyiség.
+    // A régi események sima 0/1 számok (súly=1), az újak {o,w} — mindkettőt kezeljük.
+    var n=events.length, denom=0, acc=0, vol=0;
+    for(var i=0;i<n;i++){
+      var e0=events[i];
+      var o=(typeof e0==='object')?(e0.o||0):e0;
+      var w=(typeof e0==='object')?(e0.w||1):1;
+      var d=Math.pow(MASTERY_DECAY, n-1-i);
+      denom+=d*w; acc+=d*w*o; vol+=w;
+    }
+    var accuracy = denom ? acc/denom : 0;
     var count = (ev.correct||0) + (ev.wrong||0);
-    return {state:(count>=MASTERY_GATE && accuracy>=MASTERY_GREEN)?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
+    return {state:(vol>=MASTERY_GATE && accuracy>=MASTERY_GREEN)?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
   }
   // élő bizonyíték híján a korábbi nyelvtani gyakorlás előzménye (pre-evidence adat)
   var hist=JSON.parse(localStorage.getItem('ex_history')||'[]').filter(function(h){ return h.roadmapId===id; });
@@ -2793,6 +2808,9 @@ function startExercises(){
   grExState.score = {correct:0, total:0};
   grExState.perItem = {};
   grExState.phase = 'question';
+  // a témák session eleji tudásszint-állapota (a "zöldre vált" toasthoz)
+  grExState.preStates = {};
+  selectedTenses.forEach(function(id){ grExState.preStates[id] = itemMastery(id).state; });
 
   toggleTenseSelect(false); // gyakorlás indításakor a választó becsukódik (több hely)
   document.getElementById('exercise-area').style.display = 'block';
@@ -2912,6 +2930,7 @@ function selectChoice(el, idx){
   }
   grExState.score.total++;
   grExState.perItem[rid2].total++;
+  addItemEvidence(rid2, isCorrect?1:0, isCorrect?0:1, exWeight('choice')); // súlyozott tudásszint-jel
   showGrFeedback(isCorrect, grExState.queue[grExState.idx].ex);
   document.getElementById('btn-next').style.display = 'inline-block';
   grExState.phase = 'checked';
@@ -2972,6 +2991,7 @@ function checkGrAnswer(){
   if(isCorrect){ grExState.score.correct++; grExState.perItem[rid].correct++; }
   grExState.score.total++;
   grExState.perItem[rid].total++;
+  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight(type)); // súlyozott tudásszint-jel
 
   if(type === 'fill'){
     var inp2 = document.getElementById('ex-input');
@@ -2991,6 +3011,7 @@ function showGrAnswer(){
   if(!grExState.perItem[rid3]) grExState.perItem[rid3] = {correct:0, total:0};
   grExState.perItem[rid3].total++;
   grExState.score.total++;
+  addItemEvidence(rid3, 0, 1, exWeight(item.ex.type)); // megmutatott válasz = hibás jel
   var fb = document.getElementById('ex-feedback');
   fb.className = 'ex-feedback wrong';
   fb.innerHTML = 'Helyes válasz: <strong>'+(item.ex.answer||'')+'</strong>'
@@ -3029,13 +3050,13 @@ function showGrExSummary(){
   var s = grExState.score;
   var pct = s.total ? Math.round(s.correct/s.total*100) : 0;
 
-  // Save exact history per roadmap item + élő tudásszint-bizonyíték; toast, ha zöldre vált
+  // Session-előzmény + toast: a tudásszint-bizonyítékot már válaszonként (súlyozottan)
+  // rögzítettük, itt csak az ex_history mentés és a zöldre váltás jelzése történik.
   Object.keys(grExState.perItem).forEach(function(rid){
     var c = grExState.perItem[rid];
     if(c.total > 0){
-      var before = itemMastery(rid).state;
-      addItemEvidence(rid, c.correct, c.total - c.correct);
       saveExerciseHistory(rid, c.correct, c.total);
+      var before = (grExState.preStates && grExState.preStates[rid]) || 'grey';
       if(itemMastery(rid).state==='green' && before!=='green'){
         var ri = roadmapItem(rid);
         showToast('🟢 '+(ri ? (ri.item.en||ri.item.title) : rid)+' — jól megy!');
