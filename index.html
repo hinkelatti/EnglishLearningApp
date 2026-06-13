@@ -270,15 +270,14 @@
           </div>
         </div>
 
-        <div class="daily-task-box" id="daily-task-box">
-          <div class="daily-task-header">
-            <span class="daily-task-title">📋 Mai feladatok</span>
-            <button class="btn btn-outline btn-sm" onclick="generateDailyPlan()">🔄 Frissítés</button>
+        <div class="level-box" id="level-box">
+          <div class="level-header">
+            <span class="level-title">🎓 Szint és heti visszajelzés</span>
+            <button class="btn btn-outline btn-sm" onclick="generateLevelReport(true)">🔄 Frissítés most</button>
           </div>
-          <div id="daily-task-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Terv generálása...</div>
-          <div id="daily-task-content">
-            <div style="color:var(--faint);font-size:.86rem;padding:.5rem 0">Kattints a Frissítés gombra a mai feladatokhoz.</div>
-          </div>
+          <div id="level-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Visszajelzés készítése a gyakorlásaid alapján...</div>
+          <div id="level-content"></div>
+          <div id="level-history"></div>
         </div>
 
         <div class="weekly-chart-box">

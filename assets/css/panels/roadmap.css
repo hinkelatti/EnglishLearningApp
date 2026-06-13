@@ -65,15 +65,31 @@
 .progress-stat-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 
 /* Napi feladatok */
-.daily-task-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem;margin-bottom:1.5rem}
-.daily-task-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.daily-task-title{font-weight:600;font-size:.95rem}
-.daily-task-item{display:flex;align-items:flex-start;gap:10px;padding:.6rem 0;border-bottom:1px solid var(--border)}
-.daily-task-item:last-child{border-bottom:none}
-.daily-task-check{width:20px;height:20px;border:2px solid var(--border2);border-radius:4px;cursor:pointer;flex-shrink:0;margin-top:2px;transition:all .15s}
-.daily-task-check.done{background:var(--success);border-color:var(--success)}
-.daily-task-text{font-size:.88rem;line-height:1.5}
-.daily-task-tag{font-size:.72rem;padding:2px 8px;background:rgba(138,94,42,.1);color:var(--accent);border-radius:99px;margin-left:6px}
+/* Szint és heti visszajelzés */
+.level-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem;margin-bottom:1.5rem}
+.level-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:8px}
+.level-title{font-weight:600;font-size:.95rem}
+.level-empty{color:var(--faint);font-size:.86rem;padding:.5rem 0}
+.lvl-overall{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:.8rem}
+.lvl-overall-val{font-family:'Inter',sans-serif;font-size:2.1rem;line-height:1;color:var(--accent)}
+.lvl-overall-label{font-size:.78rem;color:var(--muted)}
+.lvl-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.lvl-chip{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:.5rem;text-align:center}
+.lvl-chip-val{font-family:'Inter',sans-serif;font-size:1.1rem;color:var(--text)}
+.lvl-chip-label{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
+.lvl-summary{font-size:.88rem;line-height:1.6;color:var(--text);margin-bottom:1rem}
+.lvl-prio-title{font-size:.74rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem}
+.lvl-prio{background:rgba(138,94,42,.06);border-left:3px solid var(--accent);border-radius:0 var(--rs) var(--rs) 0;padding:.55rem .8rem;margin-bottom:.5rem}
+.lvl-prio-what{font-size:.86rem;color:var(--text);line-height:1.45}
+.lvl-prio-why{font-size:.78rem;color:var(--muted);margin-top:2px}
+.lvl-changes{font-size:.82rem;color:var(--muted);margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--border)}
+.lvl-hist{margin-top:1rem}
+.lvl-hist>summary{font-size:.8rem;color:var(--muted);cursor:pointer}
+.lvl-hist-item{display:flex;gap:8px;align-items:baseline;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.78rem}
+.lvl-hist-date{color:var(--faint);white-space:nowrap}
+.lvl-hist-lvl{font-weight:700;color:var(--accent);white-space:nowrap}
+.lvl-hist-sum{color:var(--muted);line-height:1.4}
+@media(max-width:560px){.lvl-chips{grid-template-columns:repeat(2,1fr)}}
 
 /* Heti egyensúly-navigátor */
 .weekly-chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem}

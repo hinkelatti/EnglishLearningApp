@@ -460,6 +460,8 @@ function renderProgressOverview() {
 
   // Heti egyensúly-navigátor
   renderWeekNavigator();
+  // Heti szint-visszajelzés (auto, ha esedékes; különben a meglévőt rajzolja)
+  maybeAutoLevelReport();
 }
 
 // Lokális dátum YYYY-MM-DD formátumban — a toISOString() UTC-t ad, ami magyar
@@ -813,63 +815,139 @@ function renderWeekNavigator() {
 }
 
 // ============================================================
-// DAILY PLAN
+// HETI SZINT-VISSZAJELZÉS (adatvezérelt, hetente frissül)
 // ============================================================
-async function generateDailyPlan() {
-  show('daily-task-loading');
-  document.getElementById('daily-task-content').innerHTML = '';
-  dis('btn-weekly-start', true);
-
-  var dayNames = ['vasárnap','hétfő','kedd','szerda','csütörtök','péntek','szombat'];
-  var today = dayNames[new Date().getDay()];
-  var activeWords = oxWords.filter(function(w) { return w.s === 'active'; }).length;
-  var errors = JSON.parse(localStorage.getItem('error_patterns') || '[]');
-  var activeErrors = errors.filter(function(e) { return e.status === 'active'; });
-  var planText = (document.getElementById('doc-plan-text') || {}).value || DOC_DEFAULTS.plan;
-
-  try {
-    var r = await claude(
-      'You are a personalized English learning coach for a Hungarian B1 learner targeting C1. Generate a concrete daily study plan. Return ONLY valid JSON: {"greeting":"short motivating HU sentence","tasks":[{"time":"X perc","activity":"konkrét feladat HU","module":"Fordítás|Társalgás|Igeidők|Szótár|Anki","tip":"rövid tipp HU"}]}. Max 4 tasks. Be specific about what exactly to do.',
-      'Today is ' + today + '. Active vocabulary: ' + activeWords + ' words. Active error patterns: ' + activeErrors.length + '. Weekly plan:\n' + planText.substring(0, 500)
-    );
-    var d = safeParseJSON(r);
-    var html = '';
-    if (d.greeting) html += '<div style="font-size:.88rem;color:var(--muted);margin-bottom:.8rem;font-style:italic">' + d.greeting + '</div>';
-    if (d.tasks) {
-      d.tasks.forEach(function(task, i) {
-        var saved = JSON.parse(localStorage.getItem('daily_tasks_' + getTodayStr()) || '[]');
-        var done = saved.indexOf(i) > -1;
-        html += '<div class="daily-task-item">'
-          + '<div class="daily-task-check' + (done ? ' done' : '') + '" onclick="toggleDailyTask(' + i + ',this)" id="dtask-' + i + '"></div>'
-          + '<div class="daily-task-text">'
-          + '<strong>' + task.time + '</strong> — ' + task.activity
-          + '<span class="daily-task-tag">' + task.module + '</span>'
-          + (task.tip ? '<div style="font-size:.78rem;color:var(--faint);margin-top:2px">' + task.tip + '</div>' : '')
-          + '</div>'
-          + '</div>';
-      });
-    }
-    document.getElementById('daily-task-content').innerHTML = html;
-    logSession();
-    renderProgressOverview();
-  } catch (e) {
-    document.getElementById('daily-task-content').innerHTML = '<div class="err">Hiba: ' + e.message + '</div>';
-  }
-  hide('daily-task-loading');
-  dis('btn-weekly-start', false);
-}
 
 function getTodayStr() {
   return localDateStr(new Date());
 }
 
-function toggleDailyTask(idx, el) {
-  var key = 'daily_tasks_' + getTodayStr();
-  var saved = JSON.parse(localStorage.getItem(key) || '[]');
-  var pos = saved.indexOf(idx);
-  if (pos > -1) { saved.splice(pos, 1); el.classList.remove('done'); }
-  else { saved.push(idx); el.classList.add('done'); }
-  localStorage.setItem(key, JSON.stringify(saved));
+var CEFR = ['A1','A2','B1','B2','C1','C2'];
+function cefrLabel(idx){ return CEFR[Math.max(0, Math.min(CEFR.length-1, Math.round(idx)))]; }
+
+// Tömör adatkép minden jelből — ez megy a szint-becsléshez és a visszajelzéshez
+function buildProgressSnapshot(){
+  var snap={};
+  // Idő-egyensúly (elmúlt 7 nap, perc)
+  var timeData=JSON.parse(localStorage.getItem('learning_time')||'{}');
+  var t={input:0,output:0,deliberate:0};
+  for(var i=0;i<7;i++){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i);
+    var cs=dayCategorySecs(timeData[localDateStr(d)]); t.input+=cs.input; t.output+=cs.output; t.deliberate+=cs.deliberate; }
+  var totMin=Math.round((t.input+t.output+t.deliberate)/60);
+  snap.time={input_min:Math.round(t.input/60), output_min:Math.round(t.output/60), deliberate_min:Math.round(t.deliberate/60), total_hours:+(totMin/60).toFixed(1)};
+  // Nyelvtan roadmap szintenként (zöld = jól megy, narancs = gyakorolja)
+  roadmapItem('');
+  var gl={}, weak=[];
+  ROADMAP.forEach(function(b){
+    if(!gl[b.level]) gl[b.level]={green:0,orange:0,total:0};
+    b.items.forEach(function(it){
+      var m=itemMastery(it.id); gl[b.level].total++;
+      if(m.state==='green') gl[b.level].green++;
+      else if(m.state==='orange'){ gl[b.level].orange++; if(m.count>0 && m.score<70) weak.push((it.en||it.title)+' ('+b.level+', '+m.score+'%)'); }
+    });
+  });
+  snap.grammar=gl;
+  snap.weak_grammar=weak.slice(0,8);
+  // Szókincs lefedettség
+  var cov=vocabCoverage();
+  snap.vocab={b2_pct:cov.b2.pct, b2_known:cov.b2.known, b2_total:cov.b2.total, c1_pct:cov.c1.pct, c1_known:cov.c1.known, c1_total:cov.c1.total, weekly_new:cov.delta};
+  // Készség-eredmények (utolsó 21 nap átlaga)
+  var sr=JSON.parse(localStorage.getItem('skill_results')||'[]');
+  var since=Date.now()-21*24*3600*1000, agg={};
+  sr.forEach(function(x){ if(x.ts<since) return; if(!agg[x.type]) agg[x.type]={sum:0,n:0}; agg[x.type].sum+=x.score; agg[x.type].n++; });
+  var skills={};
+  Object.keys(agg).forEach(function(k){ skills[k]={avg_pct:Math.round(agg[k].sum/agg[k].n*100), n:agg[k].n}; });
+  snap.skills=skills;
+  // Top aktív hibaminták
+  var errs=JSON.parse(localStorage.getItem('error_patterns')||'[]').filter(function(e){ return e.status==='active'; });
+  errs.sort(function(a,b){ return (b.count||1)-(a.count||1); });
+  snap.top_errors=errs.slice(0,6).map(function(e){ return {wrong:e.wrong, right:e.right, count:e.count||1, type:e.type}; });
+  return snap;
+}
+
+// Determinisztikus alap-szint a szókincs-lefedettségből — az AI ebből indul, nem találgat
+function estimateLevels(snap){
+  var v=snap.vocab, idx;
+  if(v.c1_pct>=70) idx=4; else if(v.b2_pct>=85) idx=3; else if(v.b2_pct>=60) idx=2; else if(v.b2_pct>=35) idx=1; else idx=0;
+  return {anchorIdx:idx, anchor:cefrLabel(idx)};
+}
+
+var _levelReportRunning=false;
+async function generateLevelReport(manual){
+  if(_levelReportRunning) return;
+  _levelReportRunning=true;
+  var content=document.getElementById('level-content');
+  show('level-loading');
+  try{
+    var snap=buildProgressSnapshot();
+    var est=estimateLevels(snap);
+    var reports=JSON.parse(localStorage.getItem('level_reports')||'[]');
+    var prev=reports[0];
+    var prevTxt=prev ? ('Previous report ('+prev.date+'): '+JSON.stringify(prev.levels)) : 'No previous report (this is the first).';
+    var r=await claude(
+      'You are an expert CEFR examiner and coach for a Hungarian English learner (around B1, heading to C1). Estimate CEFR levels from the DATA only and give concise, actionable Hungarian feedback aimed at the FASTEST purposeful progress. Do NOT inflate: stay within one CEFR step of what the data supports. The vocabulary coverage anchor is ~'+est.anchor+'. If a skill has little data, say so and estimate conservatively. Return ONLY valid JSON, no markdown: {"levels":{"reading":"A1..C2","production":"A1..C2","grammar":"A1..C2","vocab":"A1..C2","overall":"A1..C2"},"summary":"3-5 Hungarian sentences on the current situation","priorities":[{"what":"concrete Hungarian action","why":"short Hungarian reason"}],"changes":"1-2 Hungarian sentences comparing to the previous report"}. Max 3 priorities.',
+      'DATA (JSON):\n'+JSON.stringify(snap)+'\n\n'+prevTxt,
+      1500
+    );
+    var d=safeParseJSON(r);
+    if(!d || !d.levels) throw new Error('Hiányos válasz az AI-tól.');
+    reports.unshift({date:getTodayStr(), ts:Date.now(), levels:d.levels, summary:d.summary||'', priorities:d.priorities||[], changes:d.changes||''});
+    if(reports.length>40) reports=reports.slice(0,40);
+    localStorage.setItem('level_reports', JSON.stringify(reports));
+    renderLevelPanel();
+  }catch(e){
+    if(content) content.innerHTML='<div class="err">Hiba: '+e.message+'</div>';
+  }
+  hide('level-loading');
+  _levelReportRunning=false;
+}
+
+// Hetente automatikus: ha nincs friss (7 napon belüli) jelentés és van miből dolgozni
+function maybeAutoLevelReport(){
+  if(_levelReportRunning) return;
+  var reports=JSON.parse(localStorage.getItem('level_reports')||'[]');
+  var last=reports[0];
+  var due = !last || (Date.now()-(last.ts||0) >= 7*24*3600*1000);
+  var hasData = JSON.parse(localStorage.getItem('skill_results')||'[]').length>0
+             || Object.keys(JSON.parse(localStorage.getItem('item_evidence')||'{}')).length>0
+             || (oxWords && oxWords.length>0);
+  if(due && hasData) generateLevelReport(false);
+  else renderLevelPanel();
+}
+
+function renderLevelPanel(){
+  var content=document.getElementById('level-content');
+  var hist=document.getElementById('level-history');
+  if(!content) return;
+  var reports=JSON.parse(localStorage.getItem('level_reports')||'[]');
+  if(!reports.length){
+    content.innerHTML='<div class="level-empty">Még nincs heti visszajelzés. A gyakorlásaid alapján készítek egyet.<br>'
+      + '<button class="btn btn-gold btn-sm" style="margin-top:.7rem" onclick="generateLevelReport(true)">🎓 Visszajelzés készítése</button></div>';
+    if(hist) hist.innerHTML='';
+    return;
+  }
+  var r=reports[0], L=r.levels||{};
+  function chip(label,val){ return '<div class="lvl-chip"><div class="lvl-chip-val">'+(val||'—')+'</div><div class="lvl-chip-label">'+label+'</div></div>'; }
+  var html='<div class="lvl-overall"><span class="lvl-overall-val">'+(L.overall||'—')+'</span>'
+    + '<span class="lvl-overall-label">becsült összesített szint · '+r.date+'</span></div>';
+  html+='<div class="lvl-chips">'+chip('Olvasás / hallás',L.reading)+chip('Beszéd / írás',L.production)+chip('Nyelvtan',L.grammar)+chip('Szókincs',L.vocab)+'</div>';
+  if(r.summary) html+='<div class="lvl-summary">'+r.summary+'</div>';
+  if(r.priorities && r.priorities.length){
+    html+='<div class="lvl-prio-title">Mire koncentrálj — leggyorsabb haladás</div>';
+    r.priorities.forEach(function(p){ html+='<div class="lvl-prio"><div class="lvl-prio-what">→ '+(p.what||'')+'</div>'+(p.why?'<div class="lvl-prio-why">'+p.why+'</div>':'')+'</div>'; });
+  }
+  if(r.changes) html+='<div class="lvl-changes">📈 '+r.changes+'</div>';
+  content.innerHTML=html;
+  if(hist){
+    if(reports.length>1){
+      var items=reports.slice(1,13).map(function(x){
+        return '<div class="lvl-hist-item"><span class="lvl-hist-date">'+x.date+'</span>'
+          + '<span class="lvl-hist-lvl">'+((x.levels&&x.levels.overall)||'—')+'</span>'
+          + '<span class="lvl-hist-sum">'+((x.summary||'').substring(0,140))+'…</span></div>';
+      }).join('');
+      hist.innerHTML='<details class="lvl-hist"><summary>Korábbi visszajelzések ('+(reports.length-1)+')</summary>'+items+'</details>';
+    } else hist.innerHTML='';
+  }
 }
 
 // ============================================================
