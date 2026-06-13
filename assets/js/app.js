@@ -2799,8 +2799,14 @@ function startExercises(){
     if(!item) return;
     // Get cached AI exercises too
     var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
-    var allEx = item.exercises.concat(cached);
-    allEx.forEach(function(ex){ grExState.queue.push({roadmapId:id, itemName:item.name, level:item.level, ex:ex}); });
+    var seen = {};
+    item.exercises.concat(cached).forEach(function(ex){
+      if(!ex || !ex.type) return;
+      var sig = exSignature(ex);
+      if(seen[sig]) return; // ismétlődő feladat kiszűrése
+      seen[sig] = true;
+      grExState.queue.push({roadmapId:id, itemName:item.name, level:item.level, ex:ex});
+    });
   });
 
   grExState.queue.sort(function(){ return Math.random() - 0.5; });
@@ -3146,21 +3152,47 @@ function showGrExSummary(){
   renderTenseSelector();
 }
 
+// Egy feladat egyedi aláírása a deduplikáláshoz (típus + azonosító mezők)
+function exSignature(ex){
+  if(!ex) return '';
+  var t = ex.type || '';
+  var parts;
+  switch(t){
+    case 'fill':      parts=[ex.hu, ex.pre, ex.post, ex.answer]; break;
+    case 'transform': parts=[ex.source, ex.answer]; break;
+    case 'error':     parts=[ex.sentence, ex.answer]; break;
+    case 'choice':    parts=[ex.question, (ex.options||[]).join('|')]; break;
+    case 'build':     parts=[ex.hu, ex.answer]; break;
+    default:          parts=[JSON.stringify(ex)];
+  }
+  return t + '::' + parts.join('::').toLowerCase().replace(/\s+/g,' ').trim();
+}
+
 // AI feladat generátor
 async function generateMoreExercises(){
   if(!selectedTenses.size){ alert('Válassz legalább egy témát!'); return; }
   var btn = document.querySelector('[onclick="generateMoreExercises()"]');
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Generálás...'; }
 
+  var added = 0;
   var ids = Array.from(selectedTenses);
   for(var i = 0; i < ids.length; i++){
     var id = ids[i];
     var item = GRAMMAR_EXERCISES[id];
     if(!item) continue;
     try{
+      var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
+      // Meglévő aláírások (statikus + cache) — ezek ellen deduplikálunk
+      var existing = {};
+      item.exercises.concat(cached).forEach(function(ex){ existing[exSignature(ex)] = true; });
+      // Néhány meglévő válasz a promptba, hogy az AI ne ismételje
+      var avoid = item.exercises.concat(cached).map(function(ex){ return ex.answer||ex.sentence||ex.question||''; })
+        .filter(Boolean).slice(-8).join(' | ');
+
       var r = await claude(
-        'You are an English grammar exercise creator for a Hungarian B1 learner. Generate 3 exercises for the given grammar topic. Return ONLY valid JSON array with objects having these fields: type (fill|transform|error|choice), and type-specific fields. For fill: hu (HU context), pre, post, answer, hint. For transform: instruction, source, answer, hint. For error: sentence, answer, explanation. For choice: question, options (array of 4), correct (0-3 index). Use business English context. No markdown.',
+        'You are an English grammar exercise creator for a Hungarian B1 learner. Generate 3 NEW, varied exercises for the given grammar topic — do not repeat the avoid list. Return ONLY valid JSON array with objects having these fields: type (fill|transform|error|choice), and type-specific fields. For fill: hu (HU context), pre, post, answer, hint. For transform: instruction, source, answer, hint. For error: sentence, answer, explanation. For choice: question, options (array of 4), correct (0-3 index). Use business English context. No markdown.',
         'Grammar topic: ' + item.name + ' ('+id+'). Level: ' + item.level + '. Generate 3 varied exercises.'
+          + (avoid ? '\nAvoid repeating these (already used): ' + avoid : '')
       );
       var newEx = safeParseJSON(r);
       if(!Array.isArray(newEx)) newEx = [newEx];
@@ -3169,13 +3201,20 @@ async function generateMoreExercises(){
         var bld = await aiGenBuildItem(item.name, item.level);
         if(bld) newEx.push(bld);
       }
-      var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
-      cached = cached.concat(newEx);
+      // Deduplikálás: csak az új, még nem létező aláírások kerülnek be
+      newEx.forEach(function(ex){
+        if(!ex || !ex.type) return;
+        var sig = exSignature(ex);
+        if(existing[sig]) return;
+        existing[sig] = true;
+        cached.push(ex);
+        added++;
+      });
       localStorage.setItem('ex_cache_'+id, JSON.stringify(cached));
     } catch(e){ console.error('Generate error for '+id, e); }
   }
 
-  if(btn){ btn.disabled = false; btn.textContent = '✓ Generálva! Indítsd újra.'; }
+  if(btn){ btn.disabled = false; btn.textContent = added ? ('✓ '+added+' új feladat! Indítsd újra.') : 'Nincs új feladat — próbáld újra.'; }
   renderTenseSelector();
 }
 
