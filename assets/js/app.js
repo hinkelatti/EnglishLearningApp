@@ -660,16 +660,18 @@ function renderWeekNavigator() {
   }
 
   // --- Napi bontás (3 színű halmozott oszlopok + 60 perces célvonal) ---
-  if(maxMin < 60) maxMin = 60; // a skála legalább 60 perc, hogy a célvonal látszódjon
   var BAR_MAX = 56; // px
-  var goalY = Math.round(NAV_DAY_GOAL/60 / maxMin * BAR_MAX);
+  // A skála teteje legalább 60 perc, + ~25% ráhagyás, hogy a célvonal soha ne a
+  // legtetőre (és az overflow:hidden alá) essen, hanem jól láthatóan a sávok között
+  var scaleMax = Math.ceil(Math.max(maxMin, 60) * 1.25);
+  var goalY = Math.round(NAV_DAY_GOAL/60 / scaleMax * BAR_MAX);
   var html = '';
   days.forEach(function(c){
     var isToday = c.isToday;
     var seg = function(k){
       var m = Math.round(c[k]/60);
       if(m<=0) return '';
-      var h = Math.max(2, Math.round(m / maxMin * BAR_MAX));
+      var h = Math.max(2, Math.round(m / scaleMax * BAR_MAX));
       return '<div class="nav-bar-fill" style="height:'+h+'px;background:'+NAV_COLORS[k]+';opacity:'+(isToday?'1':'.75')+'"></div>';
     };
     var totalMin = Math.round(c.total/60);
@@ -679,7 +681,7 @@ function renderWeekNavigator() {
       : 'Nincs gyakorlás';
     html += '<div class="weekly-day-bar" title="'+tip+'">'
       + '<div class="weekly-bar-stack" style="height:'+BAR_MAX+'px">'
-        + '<div class="nav-goal-line" style="bottom:'+goalY+'px"></div>'
+        + '<div class="nav-goal-line" style="bottom:'+goalY+'px">'+(isToday?'<span class="nav-goal-tag">1 ó</span>':'')+'</div>'
         // column-reverse → input alul, tudatos felül
         + (c.total>0 ? seg('input')+seg('output')+seg('deliberate')
                      : '<div class="nav-bar-fill" style="height:2px;background:var(--border2);opacity:.5"></div>')
