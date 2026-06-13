@@ -1,5 +1,4 @@
 
-var grStatuses=JSON.parse(localStorage.getItem('gr_statuses')||'{}');
 var currentModalId=null;
 
 
@@ -319,8 +318,8 @@ function renderGrReference(){
       if(!exItem) return;
       if(fCat === 'tense' && exItem.category !== 'tense') return;
       if(fCat === 'grammar' && exItem.category === 'tense') return;
-      var status = grStatuses[id] || 'todo';
-      var dot = status==='done'?'ref-dot-done':status==='learning'?'ref-dot-learning':'ref-dot-todo';
+      var st = itemMastery(id).state;
+      var dot = st==='green'?'ref-dot-done':st==='orange'?'ref-dot-learning':'ref-dot-todo';
       itemsHtml += '<div class="ref-row" data-refid="'+id+'">'
         + '<span class="ref-dot '+dot+'"></span>'
         + '<div class="ref-row-text">'
@@ -434,7 +433,7 @@ function renderProgressOverview() {
   ROADMAP.forEach(function(band) {
     band.items.forEach(function(item) {
       total++;
-      if (grStatuses[item.id] === 'done') done++;
+      if (itemMastery(item.id).state === 'green') done++;
     });
   });
   var pct = total ? Math.round(done / total * 100) : 0;
@@ -571,24 +570,30 @@ var MASTERY_DECAY = 0.85; // recency-súly: a legutolsó esemény súlya 1, a r�
 function itemMastery(id){
   var ev = (JSON.parse(localStorage.getItem('item_evidence')||'{}'))[id];
   var events = (ev && ev.events) ? ev.events : [];
-  var manual = grStatuses[id] || 'todo';
-  if(!events.length){
-    // nincs mért adat → a kézi státuszt mutatjuk
-    if(manual==='done')     return {state:'green',  score:100, count:0, lastSeen:null, manual:true};
-    if(manual==='learning') return {state:'orange', score:40,  count:0, lastSeen:null, manual:true};
-    return {state:'grey', score:0, count:0, lastSeen:null, manual:false};
+  if(events.length){
+    var n=events.length, wSum=0, acc=0;
+    for(var i=0;i<n;i++){ var w=Math.pow(MASTERY_DECAY, n-1-i); wSum+=w; acc+=w*events[i]; }
+    var accuracy = wSum ? acc/wSum : 0;
+    var count = (ev.correct||0) + (ev.wrong||0);
+    return {state:(count>=MASTERY_GATE && accuracy>=MASTERY_GREEN)?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
   }
-  var n=events.length, wSum=0, acc=0;
-  for(var i=0;i<n;i++){ var w=Math.pow(MASTERY_DECAY, n-1-i); wSum+=w; acc+=w*events[i]; }
-  var accuracy = wSum ? acc/wSum : 0;
-  var count = (ev.correct||0) + (ev.wrong||0);
-  var state = (count>=MASTERY_GATE && accuracy>=MASTERY_GREEN) ? 'green' : 'orange';
-  return {state:state, score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen, manual:false};
+  // élő bizonyíték híján a korábbi nyelvtani gyakorlás előzménye (pre-evidence adat)
+  var hist=JSON.parse(localStorage.getItem('ex_history')||'[]').filter(function(h){ return h.roadmapId===id; });
+  if(hist.length){
+    var m=hist.length, ws=0, a=0, cnt=0;
+    for(var j=0;j<m;j++){ var w2=Math.pow(MASTERY_DECAY, m-1-j); ws+=w2; a+=w2*((hist[j].pct||0)/100); cnt+=hist[j].total||0; }
+    var ac=ws?a/ws:0;
+    return {state:(cnt>=MASTERY_GATE && ac>=MASTERY_GREEN)?'green':'orange', score:Math.round(ac*100), count:cnt, lastSeen:hist[hist.length-1].date};
+  }
+  return {state:'grey', score:0, count:0, lastSeen:null};
 }
+
+// Egységes jelzők (egyetlen forrás: itemMastery)
+function masteryIcon(state){ return state==='green'?'🟢':state==='orange'?'🟠':'⚪'; }
+function masteryStatusClass(state){ return state==='green'?'done':state==='orange'?'learning':'todo'; }
 
 function masteryTip(m){
   if(m.state==='grey') return 'Még nem gyakoroltad';
-  if(m.manual) return m.state==='green' ? 'Kézzel teljesítettre állítva' : 'Kézzel tanulás alattra állítva';
   return m.count+'× gyakorolva · '+m.score+'% pontosság'+(m.lastSeen?' · utoljára: '+m.lastSeen:'');
 }
 
@@ -606,7 +611,7 @@ function masteryModalHtml(id){
   var colors = {grey:'var(--muted)', orange:'#f59e0b', green:'#22c55e'};
   return '<div class="mastery-modal">'
     + '<div class="mastery-modal-head"><span style="color:'+colors[m.state]+';font-weight:600">'+labels[m.state]+'</span>'
-    + (m.state!=='grey' && !m.manual ? '<span class="mastery-modal-sub">'+m.count+'× gyakorolva · '+m.score+'% pontosság'+(m.lastSeen?' · utoljára: '+m.lastSeen:'')+'</span>' : '')
+    + (m.state!=='grey' ? '<span class="mastery-modal-sub">'+m.count+'× gyakorolva · '+m.score+'% pontosság'+(m.lastSeen?' · utoljára: '+m.lastSeen:'')+'</span>' : '')
     + '</div>'
     + masteryBarHtml(id)
     + '</div>';
@@ -1829,7 +1834,7 @@ async function tutorGetReply(msg){
   var errors = JSON.parse(localStorage.getItem('error_patterns')||'[]');
   var activeErrors = errors.filter(function(e){ return e.status==='active'; }).slice(0,5).map(function(e){ return e.wrong+' → '+e.right; }).join(', ');
   var roadmapDone = 0, roadmapTotal = 0;
-  ROADMAP.forEach(function(band){ band.items.forEach(function(item){ roadmapTotal++; if(grStatuses[item.id]==='done') roadmapDone++; }); });
+  ROADMAP.forEach(function(band){ band.items.forEach(function(item){ roadmapTotal++; if(itemMastery(item.id).state==='green') roadmapDone++; }); });
   var recentLog = localStorage.getItem('doc_log') || '';
   recentLog = recentLog.slice(-500);
 
@@ -2585,10 +2590,9 @@ function renderRoadmap(){
   if(!container) return;
   container.innerHTML=ROADMAP.map(function(band){
     var items=band.items.map(function(item){
-      var status=grStatuses[item.id]||'todo';
-      var icon=status==='done'?'✅':status==='learning'?'🔵':'⬜';
-      return '<div class="grammar-box status-'+status+'" id="box-'+item.id+'" onclick="openModal(\''+item.id+'\')">'+
-        '<div class="grammar-box-status">'+icon+'</div>'+
+      var st=itemMastery(item.id).state;
+      return '<div class="grammar-box status-'+masteryStatusClass(st)+'" id="box-'+item.id+'" onclick="openModal(\''+item.id+'\')">'+
+        '<div class="grammar-box-status">'+masteryIcon(st)+'</div>'+
         '<div class="grammar-box-title-en">'+(item.en||item.title)+'</div>'+
         (item.en?'<div class="grammar-box-title-hu">'+item.title+'</div>':'')+
         '<div class="grammar-box-sub">'+item.sub+'</div>'+
@@ -2601,7 +2605,7 @@ function renderRoadmap(){
 
 function updateRoadmapProgress(){
   var total=0, done=0;
-  ROADMAP.forEach(function(band){ band.items.forEach(function(item){ total++; if(grStatuses[item.id]==='done') done++; }); });
+  ROADMAP.forEach(function(band){ band.items.forEach(function(item){ total++; if(itemMastery(item.id).state==='green') done++; }); });
   var pct=total?Math.round(done/total*100):0;
   var fill=document.getElementById('rm-fill');
   var text=document.getElementById('rm-text');
@@ -2704,28 +2708,6 @@ function saveExerciseHistory(roadmapId, correct, total){
     date: getTodayStr()
   });
   localStorage.setItem('ex_history', JSON.stringify(history));
-  updateRoadmapFromExercise(roadmapId, correct, total);
-}
-
-function updateRoadmapFromExercise(roadmapId, correct, total){
-  if(!total) return;
-  var pct = Math.round(correct/total*100);
-  var history = JSON.parse(localStorage.getItem('ex_history') || '[]');
-  var sessions = history.filter(function(h){ return h.roadmapId === roadmapId; });
-  var current = grStatuses[roadmapId] || 'todo';
-  // 1 session 60%+ → learning
-  if(current === 'todo' && pct >= 60){
-    grStatuses[roadmapId] = 'learning';
-    localStorage.setItem('gr_statuses', JSON.stringify(grStatuses));
-    showToast('🔵 '+roadmapId.replace(/_/g,' ')+' → Tanulás alatt');
-  }
-  // 3 session 80%+ → done
-  var goodSessions = sessions.filter(function(h){ return h.pct >= 80; }).length;
-  if(goodSessions >= 3){
-    grStatuses[roadmapId] = 'done';
-    localStorage.setItem('gr_statuses', JSON.stringify(grStatuses));
-    showToast('✅ '+roadmapId.replace(/_/g,' ')+' → Teljesítve!');
-  }
 }
 
 function showToast(msg){
@@ -3028,12 +3010,17 @@ function showGrExSummary(){
   var s = grExState.score;
   var pct = s.total ? Math.round(s.correct/s.total*100) : 0;
 
-  // Save exact history per roadmap item + élő tudásszint-bizonyíték
+  // Save exact history per roadmap item + élő tudásszint-bizonyíték; toast, ha zöldre vált
   Object.keys(grExState.perItem).forEach(function(rid){
     var c = grExState.perItem[rid];
     if(c.total > 0){
-      saveExerciseHistory(rid, c.correct, c.total);
+      var before = itemMastery(rid).state;
       addItemEvidence(rid, c.correct, c.total - c.correct);
+      saveExerciseHistory(rid, c.correct, c.total);
+      if(itemMastery(rid).state==='green' && before!=='green'){
+        var ri = roadmapItem(rid);
+        showToast('🟢 '+(ri ? (ri.item.en||ri.item.title) : rid)+' — jól megy!');
+      }
     }
   });
   logSkillResult('grammar', pct/100, s.total);
