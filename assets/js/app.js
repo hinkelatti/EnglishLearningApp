@@ -738,6 +738,11 @@ var NAV_TOL = 0.05;            // ±5 százalékpont
 var NAV_DAY_GOAL = 60*60;      // napi cél: 60 perc (mp)
 var NAV_WEEK_GOAL = 7*60*60;   // heti cél: 7 óra (mp)
 var NAV_COLORS = {input:'#3b82f6', output:'#22c55e', deliberate:'#f59e0b'};
+// hex szín → rgba adott átlátszósággal (a halvány sávháttérhez)
+function hexA(hex, a){
+  var h=(hex||'').replace('#',''); if(h.length!==6) return hex;
+  return 'rgba('+parseInt(h.substr(0,2),16)+','+parseInt(h.substr(2,2),16)+','+parseInt(h.substr(4,2),16)+','+a+')';
+}
 
 function renderWeekNavigator() {
   var sumEl = document.getElementById('week-nav-summary');
@@ -770,7 +775,6 @@ function renderWeekNavigator() {
     output:     wkTotal ? wk.output/wkTotal : 0,
     deliberate: wkTotal ? wk.deliberate/wkTotal : 0
   };
-  var pct = function(x){ return Math.round(x*100); };
   var inOk  = wkTotal>0 && Math.abs(p.input - NAV_TARGET.input)   <= NAV_TOL;
   var outOk = wkTotal>0 && Math.abs(p.output - NAV_TARGET.output) <= NAV_TOL;
   var delOk = wkTotal>0 && Math.abs(p.deliberate - NAV_TARGET.deliberate) <= NAV_TOL;
@@ -782,15 +786,20 @@ function renderWeekNavigator() {
     var timeBarPct = Math.min(100, Math.round(wkTotal / NAV_WEEK_GOAL * 100));
     var ico = function(ok){ return ok ? '<span class="nav-ok">✓</span>' : '<span class="nav-warn">!</span>'; };
 
-    // Arány-sáv szegmensei (csak ha van adat)
-    var ratioSeg = '';
-    if(wkTotal>0){
-      ['input','output','deliberate'].forEach(function(k){
-        var w = p[k]*100;
-        if(w>0) ratioSeg += '<div style="width:'+w+'%;background:'+NAV_COLORS[k]+'"></div>';
-      });
-    } else {
-      ratioSeg = '<div style="width:100%;background:var(--border2)"></div>';
+    // Egy kategória-sor: halvány sávháttér + erős (felkúszó) tényleges érték + célvonás
+    function navCatRow(key, label, targetPct, frac, ok){
+      var color = NAV_COLORS[key];
+      var actPct = Math.round(frac*100);
+      return '<div class="nav-cat">'
+        + '<div class="nav-cat-head">'
+          + '<span class="nav-cat-name"><span class="wleg-dot" style="background:'+color+'"></span>'+label+'</span>'
+          + '<span class="nav-cat-val '+(ok?'nav-cat-ok':'nav-cat-warn')+'">'+ico(ok)+' '+actPct+'% <span class="nav-cat-goal">/ cél '+targetPct+'%</span></span>'
+        + '</div>'
+        + '<div class="nav-cat-track" style="background:'+hexA(color,0.14)+'">'
+          + '<div class="nav-cat-fill" style="width:'+Math.min(100,actPct)+'%;background:'+color+'"></div>'
+          + '<span class="nav-cat-tick" style="left:'+targetPct+'%"></span>'
+        + '</div>'
+      + '</div>';
     }
 
     // Verdikt
@@ -812,19 +821,10 @@ function renderWeekNavigator() {
         + '<span class="nav-days-met">'+ico(daysMet>0)+' '+daysMet+'/7 nap megvolt az 1 óra</span>'
       + '</div>'
       + '<div class="nav-time-track"><div class="nav-time-fill" style="width:'+timeBarPct+'%"></div></div>'
-      + '<div class="nav-ratio-track">'+ratioSeg
-        + '<span class="nav-tick" style="left:50%"></span><span class="nav-tick" style="left:75%"></span>'
-      + '</div>'
-      + '<div class="nav-ratio-legend">'
-        + '<span>Tény: <b style="color:'+NAV_COLORS.input+'">'+pct(p.input)+'%</b> / '
-          + '<b style="color:'+NAV_COLORS.output+'">'+pct(p.output)+'%</b> / '
-          + '<b style="color:'+NAV_COLORS.deliberate+'">'+pct(p.deliberate)+'%</b></span>'
-        + '<span class="nav-target-txt">Cél: 50 / 25 / 25</span>'
-      + '</div>'
-      + '<div class="nav-chips">'
-        + '<span class="nav-chip '+(inOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(inOk)+' Input '+pct(p.input)+'%</span>'
-        + '<span class="nav-chip '+(outOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(outOk)+' Output '+pct(p.output)+'%</span>'
-        + '<span class="nav-chip '+(delOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(delOk)+' Tudatos '+pct(p.deliberate)+'%</span>'
+      + '<div class="nav-cats">'
+        + navCatRow('input',      'Input',   50, p.input,      inOk)
+        + navCatRow('output',     'Output',  25, p.output,     outOk)
+        + navCatRow('deliberate', 'Tudatos', 25, p.deliberate, delOk)
       + '</div>'
       + '<div class="nav-verdict '+vClass+'">'+verdict+'</div>';
   }
