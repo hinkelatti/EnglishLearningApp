@@ -1065,6 +1065,7 @@ function renderVocabDashboard(){
   }
   document.getElementById('vocab-no-data').style.display='none';
   document.getElementById('vocab-dashboard-content').style.display='block';
+  renderVocabCoverage();
   var wordCharts=vocabChartsHtml(oxWords,'szó');
   var sr=document.getElementById('vocab-summary-row'); if(sr) sr.innerHTML=wordCharts.sum;
   var lb=document.getElementById('vocab-level-bars'); if(lb) lb.innerHTML=wordCharts.bars;
@@ -1080,6 +1081,64 @@ function renderVocabDashboard(){
   }
   var activeWords=oxWords.filter(function(w){return w.s==='active';}).length;
   var el=document.getElementById('stat-active-words'); if(el) el.textContent=activeWords||'—';
+}
+
+// Egységes szókincs-lefedettség: ismert (active+passive) szó+kifejezés a B2-ig és
+// a C1-ig terjedő szinteken, plusz a heti változás (ox_snapshots pillanatképekből).
+function vocabCoverage(){
+  function tally(items){
+    var by={};
+    items.forEach(function(w){
+      if(!by[w.l]) by[w.l]={known:0,total:0};
+      by[w.l].total++;
+      if(w.s==='active'||w.s==='passive') by[w.l].known++;
+    });
+    return by;
+  }
+  var wb=tally(oxWords), pb=tally(oxPhrases);
+  function cum(levels){
+    var known=0,total=0;
+    levels.forEach(function(l){
+      known += (wb[l]?wb[l].known:0)+(pb[l]?pb[l].known:0);
+      total += (wb[l]?wb[l].total:0)+(pb[l]?pb[l].total:0);
+    });
+    return {known:known, total:total, pct: total?Math.round(known/total*100):0};
+  }
+  return {
+    b2: cum(['A1','A2','B1','B2']),
+    c1: cum(['A1','A2','B1','B2','C1']),
+    delta: vocabWeeklyDelta()
+  };
+}
+
+// Ismert szavak változása az utolsó heti pillanatkép óta (csak szavak — a snapshot azt tárolja)
+function vocabWeeklyDelta(){
+  var snaps=JSON.parse(localStorage.getItem('ox_snapshots')||'[]');
+  if(!snaps.length) return null;
+  var c=snaps[snaps.length-1].counts;
+  var prev=0;
+  if(c && c.byLevel) Object.keys(c.byLevel).forEach(function(l){ prev += (c.byLevel[l].active||0)+(c.byLevel[l].passive||0); });
+  var now=oxWords.filter(function(w){ return w.s==='active'||w.s==='passive'; }).length;
+  return now - prev;
+}
+
+function renderVocabCoverage(){
+  var el=document.getElementById('vocab-coverage'); if(!el) return;
+  var c=vocabCoverage();
+  var deltaTxt = (c.delta!=null && c.delta!==0) ? '<span class="vcov-delta">'+(c.delta>0?'+':'')+c.delta+' szó/hét</span>' : '';
+  function card(title, g, cls, extra){
+    return '<div class="vcov-card '+cls+'">'
+      + '<div class="vcov-title">'+title+'</div>'
+      + '<div class="vcov-pct">'+g.pct+'%</div>'
+      + '<div class="vcov-track"><div class="vcov-fill" style="width:'+g.pct+'%"></div></div>'
+      + '<div class="vcov-sub">'+g.known.toLocaleString('hu')+' / '+g.total.toLocaleString('hu')+' ismert'+(extra||'')+'</div>'
+      + '</div>';
+  }
+  el.innerHTML = '<div class="section-label" style="margin-bottom:.8rem">Szókincs-lefedettség (ismert = aktív + passzív)</div>'
+    + '<div class="vcov-row">'
+    + card('B2-ig — rövid távú cél', c.b2, 'vcov-b2', deltaTxt?(' · '+deltaTxt):'')
+    + card('C1-ig — végcél', c.c1, 'vcov-c1', '')
+    + '</div>';
 }
 
 // Szint-fánkok és státusz-sávok HTML-je egy szókészletre (szavak vagy kifejezések)
