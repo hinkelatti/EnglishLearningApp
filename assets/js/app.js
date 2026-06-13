@@ -2355,7 +2355,9 @@ async function doCheck(){
     );
     var d = safeParseJSON(r);
     var sc = norm10(d.score);
-    if(typeof d.score === 'number'){ logSkillResult('writing', sc/10, 1); recordAttribution(d.roadmap); }
+    // Csak a HU→EN irány számít az előrehaladásba (angol produkció). Az EN→HU a
+    // magyar tudást teszteli, ezért nem logoljuk és nem rögzítünk hibamintát/attribúciót.
+    if(isHuEn && typeof d.score === 'number'){ logSkillResult('writing', sc/10, 1); recordAttribution(d.roadmap); }
     var scoreColor = sc>=8?'var(--success)':sc>=6?'var(--accent)':'var(--danger)';
     var html = '<div class="score-display"><span class="score-num" style="color:'+scoreColor+'">'+scDisp(sc)+'</span><span class="score-denom">/10</span><span class="score-msg">'+(d.overall||'')+' </span></div>';
     if(d.corrected_text){
@@ -2394,7 +2396,7 @@ async function doCheck(){
     } else {
       html += '<div class="ok-box">Nem találtam lényeges hibát. Szép munka!</div>';
     }
-    if(d.corrections && d.corrections.length){
+    if(isHuEn && d.corrections && d.corrections.length){
       d.corrections.forEach(function(c){ if(c.wrong&&c.right) addErrorPattern(c.wrong,c.right,c.type||'grammar',c.explanation||''); });
     }
     document.getElementById('check-result').innerHTML = html;
