@@ -18,13 +18,18 @@
 .tense-chip:hover{border-color:var(--accent);background:rgba(138,94,42,.05)}
 .tense-chip.chip-tense{border-color:rgba(58,127,191,.4);background:rgba(58,127,191,.07);color:var(--accent2)}
 .tense-chip.chip-tense:hover{border-color:var(--accent2);background:rgba(58,127,191,.12)}
-.tense-chip.chip-tense.selected{background:rgba(58,127,191,.15);border-color:var(--accent2);color:var(--accent2);font-weight:600}
-.tense-chip.chip-grammar.selected{background:rgba(138,94,42,.12);border-color:var(--accent);color:var(--accent);font-weight:600}
-.tense-chip.selected{background:rgba(138,94,42,.12);border-color:var(--accent);color:var(--accent)}
+/* Kiválasztott téma — mindig narancs kiemelés (típustól függetlenül) */
+.tense-chip.selected,
+.tense-chip.chip-tense.selected,
+.tense-chip.chip-grammar.selected{background:rgba(245,158,11,.16);border-color:#f59e0b;color:#f59e0b;font-weight:600}
 .tense-chip .tc-name{font-weight:500}
 .tense-chip .tc-badge{font-size:.68rem;color:var(--muted);margin-top:2px}
 .tc-badge{font-size:.68rem;color:var(--accent);margin-top:2px}
 .tense-select-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:1.2rem}
+/* Összecsukható témaválasztó fejléc (a Mondatszerkesztéshez hasonlóan) */
+.select-collapse-header{display:flex;justify-content:space-between;align-items:center;width:100%;padding:.5rem .85rem;margin-bottom:.8rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;color:var(--text)}
+.select-collapse-header:hover{border-color:var(--accent)}
+#tense-select-arrow{font-size:.7rem;color:var(--muted)}
 
 /* Igeidő checkbox-ok (régi igeidő-gyakorló) */
 .tense-chk{display:flex;align-items:center;gap:5px;padding:7px 14px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--rs);cursor:pointer;font-size:.84rem;color:var(--muted);transition:all .15s;user-select:none;flex-direction:column;align-items:flex-start;gap:2px}

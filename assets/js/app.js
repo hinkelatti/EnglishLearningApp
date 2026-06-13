@@ -2671,9 +2671,10 @@ function renderTenseSelector(){
     if(!byLevel[lvl]) return;
     html += '<div class="tense-group"><div class="tense-group-label">'+lvl+'</div><div class="tense-chips">';
     byLevel[lvl].forEach(function(item){
-      var history = getExerciseHistory(item.id);
-      var statusIcon = history.sessions===0?'':history.avgPct>=85?' ✅':history.avgPct>=60?' 🔵':' 🟡';
-      var badge = history.sessions>0?'<div class="tc-badge">'+history.sessions+'× · '+history.avgPct+'%</div>':'';
+      // Roadmap élő tudásszint a chipen (ugyanaz az adat, mint a roadmapon)
+      var m = itemMastery(item.id);
+      var statusIcon = ' '+masteryIcon(m.state);
+      var badge = m.count>0 ? '<div class="tc-badge">'+m.count+'× · '+m.score+'%</div>' : '';
       var chipCls = 'tense-chip '+(item.isTense?'chip-tense':'chip-grammar')+(selectedTenses.has(item.id)?' selected':'');
       html += '<div class="'+chipCls+'" id="tc-'+item.id+'" data-id="'+item.id+'">'
         + '<div class="tc-name">'+item.name+statusIcon+'</div>'+badge+'</div>';
@@ -2688,14 +2689,24 @@ function renderTenseSelector(){
     if(!id) return;
     toggleTense(id);
   };
+  updateTenseSelectSummary();
 }
 
-function getExerciseHistory(roadmapId){
-  var history = JSON.parse(localStorage.getItem('ex_history') || '[]');
-  var sessions = history.filter(function(h){ return h.roadmapId === roadmapId; });
-  if(!sessions.length) return {sessions:0, avgPct:0, lastPct:0};
-  var avg = Math.round(sessions.reduce(function(s,h){ return s + h.pct; }, 0) / sessions.length);
-  return {sessions:sessions.length, avgPct:avg, lastPct:sessions[sessions.length-1].pct};
+// A témaválasztó panel össze-/kinyitása (a Mondatszerkesztéshez hasonlóan)
+function toggleTenseSelect(force){
+  var grid = document.getElementById('tense-select-grid');
+  var arrow = document.getElementById('tense-select-arrow');
+  if(!grid) return;
+  var open = (typeof force === 'boolean') ? force : (grid.style.display === 'none');
+  grid.style.display = open ? 'flex' : 'none';
+  if(arrow) arrow.textContent = open ? '▾' : '▸';
+}
+
+function updateTenseSelectSummary(){
+  var el = document.getElementById('tense-select-summary');
+  if(!el) return;
+  var n = selectedTenses.size;
+  el.textContent = n ? ('Témák: '+n+' kiválasztva') : 'Témák kiválasztása';
 }
 
 function saveExerciseHistory(roadmapId, correct, total){
@@ -2733,6 +2744,7 @@ function toggleTense(id){
     var el=document.getElementById('tc-'+id);
     if(el) el.classList.add('selected');
   }
+  updateTenseSelectSummary();
 }
 
 function selectAllTenses(){
@@ -2741,6 +2753,7 @@ function selectAllTenses(){
     var el=document.getElementById('tc-'+id);
     if(el) el.classList.add('selected');
   });
+  updateTenseSelectSummary();
 }
 
 function deselectAllTenses(){
@@ -2749,6 +2762,7 @@ function deselectAllTenses(){
     var el=document.getElementById('tc-'+id);
     if(el) el.classList.remove('selected');
   });
+  updateTenseSelectSummary();
 }
 
 function startExercises(){
@@ -2776,6 +2790,7 @@ function startExercises(){
   grExState.perItem = {};
   grExState.phase = 'question';
 
+  toggleTenseSelect(false); // gyakorlás indításakor a választó becsukódik (több hely)
   document.getElementById('exercise-area').style.display = 'block';
   renderGrExercise();
 }
