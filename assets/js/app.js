@@ -84,7 +84,9 @@ var Store = (function(){
     var token = _token();
     if(!token){ if(onDone) onDone(0); return; }
     var keys = ['oxford_words','oxford_phrases','anki_cards',
-                'active_main','active_tense_tab'];
+                'active_main','active_tense_tab',
+                'learning_time','item_evidence','skill_results',
+                'error_patterns','ex_history','level_reports'];
     var pending = 0;
     keys.forEach(function(k){
       var raw = localStorage.getItem(k);
@@ -461,7 +463,7 @@ function addLearningTime(category, seconds) {
   var data = JSON.parse(localStorage.getItem('learning_time') || '{}');
   if(!data[today]) data[today] = {};
   data[today][category] = (data[today][category] || 0) + seconds;
-  localStorage.setItem('learning_time', JSON.stringify(data));
+  Store.set('learning_time', data); // szinkron a D1-be (eszközök közt)
 }
 
 // Egy nap idő-bontása másodpercben, a 3 navigátor-kategóriára.
@@ -503,7 +505,7 @@ function logSkillResult(type, score, count){
   arr.push({date:getTodayStr(), ts:Date.now(), type:type,
             score:Math.max(0, Math.min(1, score||0)), count:count||1});
   if(arr.length > 1000) arr = arr.slice(-1000);
-  localStorage.setItem('skill_results', JSON.stringify(arr));
+  Store.set('skill_results', arr);
 }
 
 // Roadmap-elem szintű bizonyíték: helyes/hibás használat egy nyelvtani témán.
@@ -530,7 +532,7 @@ function addItemEvidence(roadmapId, correct, wrong, weight, form){
   for(k=0; k<wrong; k++) e.events.push({o:0, w:weight});
   if(e.events.length > 40) e.events = e.events.slice(-40);
   ev[roadmapId] = e;
-  localStorage.setItem('item_evidence', JSON.stringify(ev));
+  Store.set('item_evidence', ev);
 }
 
 // Feladattípus-súlyok az előrehaladáshoz (felismerés < irányított < produkció)
@@ -941,7 +943,7 @@ async function generateLevelReport(manual){
     if(!d || !d.levels) throw new Error('Hiányos válasz az AI-tól.');
     reports.unshift({date:getTodayStr(), ts:Date.now(), levels:d.levels, summary:d.summary||'', priorities:d.priorities||[], changes:d.changes||''});
     if(reports.length>40) reports=reports.slice(0,40);
-    localStorage.setItem('level_reports', JSON.stringify(reports));
+    Store.set('level_reports', reports);
     renderLevelPanel();
   }catch(e){
     if(content) content.innerHTML='<div class="err">Hiba: '+e.message+'</div>';
@@ -1021,7 +1023,7 @@ function addErrorPattern(wrong, right, type, explanation) {
       lastSeen: getTodayStr()
     });
   }
-  localStorage.setItem('error_patterns', JSON.stringify(patterns));
+  Store.set('error_patterns', patterns);
 }
 
 function renderErrorPatterns() {
@@ -1062,7 +1064,7 @@ function renderErrorPatterns() {
 function updateErrorStatus(id, status) {
   var patterns = JSON.parse(localStorage.getItem('error_patterns') || '[]');
   var p = patterns.find(function(p) { return p.id === id; });
-  if (p) { p.status = status; localStorage.setItem('error_patterns', JSON.stringify(patterns)); }
+  if (p) { p.status = status; Store.set('error_patterns', patterns); }
   renderProgressOverview();
 }
 
@@ -2820,7 +2822,7 @@ function saveExerciseHistory(roadmapId, correct, total){
     pct: total ? Math.round(correct/total*100) : 0,
     date: getTodayStr()
   });
-  localStorage.setItem('ex_history', JSON.stringify(history));
+  Store.set('ex_history', history);
 }
 
 function showToast(msg){
@@ -3682,7 +3684,7 @@ async function ankiFetchReviewTimes(cardIds){
       if(!ltData[date]) ltData[date]={};
       ltData[date].anki = reviewTimes[date]; // a tudatos gyakorlásba számít (lásd dayCategorySecs)
     });
-    localStorage.setItem('learning_time', JSON.stringify(ltData));
+    Store.set('learning_time', ltData);
   }
   return true;
 }
