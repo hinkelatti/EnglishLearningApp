@@ -538,6 +538,9 @@ function addItemEvidence(roadmapId, correct, wrong, weight, form){
   // forma-lefedettség: csak a HELYES használat számít, súlyozva (kumulatív)
   if(!e.forms) e.forms = {pos:0, neg:0, q:0};
   if(correct>0 && form && e.forms.hasOwnProperty(form)) e.forms[form] += correct*weight;
+  // helyes gyakorlás napjai (spaced repetition kapuhoz)
+  if(!e.days) e.days = {};
+  if(correct>0) e.days[getTodayStr()] = 1;
   // esemény-napló a recency-súlyozáshoz: {o:helyes?1:0, w:súly} — csak az utolsó 40 marad
   var k;
   for(k=0; k<correct; k++) e.events.push({o:1, w:weight});
@@ -596,10 +599,11 @@ function recordAttribution(attr){
 //  - A pontszám recency-súlyozott pontosság (újabb esemény többet nyom, naptári kopás nincs).
 //  - A mennyiség csak belépő-kapu a zöldhöz; helyes éles használat teljes értékű.
 //  - Csak hiba ront (zöld→narancs). Adat híján a kézi státuszt tükrözi.
-var MASTERY_GATE = 6;     // ennyi (súlyozott) esemény kell a zöld jogosultsághoz
+var MASTERY_GATE = 15;    // ennyi (súlyozott) helyes/hibás esemény kell a zöld jogosultsághoz
 var MASTERY_GREEN = 0.85; // recency-súlyozott pontosság küszöbe a zöldhöz
 var MASTERY_DECAY = 0.85; // recency-súly: a legutolsó esemény súlya 1, a régebbiek fakulnak
 var FORM_MIN = 2;         // igeidőknél formánként (állítás/tagadás/kérdés) ennyi súlyozott helyes kell
+var MASTERY_MIN_DAYS = 2; // ennyi KÜLÖN napon kell helyesen gyakorolni (spaced repetition)
 
 // Igeidőknél a zöldhöz mindhárom formát demonstrálni kell (állítással önmagában nem elég).
 // Ha még nincs forma-adat (pl. csak éles produkció), a forma-kapu nem blokkol.
@@ -609,6 +613,11 @@ function masteryFormsOk(id, ev){
   var f = (ev && ev.forms) || {pos:0, neg:0, q:0};
   if((f.pos + f.neg + f.q) <= 0) return true; // nincs forma-adat → ne blokkoljon
   return f.pos >= FORM_MIN && f.neg >= FORM_MIN && f.q >= FORM_MIN;
+}
+// Hány külön napon volt helyes gyakorlás (a régi adatnál a lastSeen 1 napnak számít)
+function masteryDistinctDays(ev){
+  if(ev && ev.days) return Object.keys(ev.days).length;
+  return (ev && ev.lastSeen) ? 1 : 0;
 }
 function itemMastery(id){
   var ev = (JSON.parse(localStorage.getItem('item_evidence')||'{}'))[id];
@@ -626,16 +635,18 @@ function itemMastery(id){
     }
     var accuracy = denom ? acc/denom : 0;
     var count = (ev.correct||0) + (ev.wrong||0);
-    var green = vol>=MASTERY_GATE && accuracy>=MASTERY_GREEN && masteryFormsOk(id, ev);
+    var green = vol>=MASTERY_GATE && accuracy>=MASTERY_GREEN
+      && masteryFormsOk(id, ev) && masteryDistinctDays(ev) >= MASTERY_MIN_DAYS;
     return {state: green?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
   }
   // élő bizonyíték híján a korábbi nyelvtani gyakorlás előzménye (pre-evidence adat)
   var hist=JSON.parse(localStorage.getItem('ex_history')||'[]').filter(function(h){ return h.roadmapId===id; });
   if(hist.length){
-    var m=hist.length, ws=0, a=0, cnt=0;
-    for(var j=0;j<m;j++){ var w2=Math.pow(MASTERY_DECAY, m-1-j); ws+=w2; a+=w2*((hist[j].pct||0)/100); cnt+=hist[j].total||0; }
+    var m=hist.length, ws=0, a=0, cnt=0, hdays={};
+    for(var j=0;j<m;j++){ var w2=Math.pow(MASTERY_DECAY, m-1-j); ws+=w2; a+=w2*((hist[j].pct||0)/100); cnt+=hist[j].total||0; if(hist[j].date) hdays[hist[j].date]=1; }
     var ac=ws?a/ws:0;
-    return {state:(cnt>=MASTERY_GATE && ac>=MASTERY_GREEN)?'green':'orange', score:Math.round(ac*100), count:cnt, lastSeen:hist[hist.length-1].date};
+    var histGreen = cnt>=MASTERY_GATE && ac>=MASTERY_GREEN && Object.keys(hdays).length>=MASTERY_MIN_DAYS;
+    return {state: histGreen?'green':'orange', score:Math.round(ac*100), count:cnt, lastSeen:hist[hist.length-1].date};
   }
   return {state:'grey', score:0, count:0, lastSeen:null};
 }
