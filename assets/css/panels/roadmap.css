@@ -119,8 +119,9 @@
 .nav-bal-cat{flex-basis:0;min-width:0}
 .nav-bal-bar{height:16px;border-radius:5px;overflow:hidden}
 .nav-bal-fill{height:100%;border-radius:5px;transition:width .3s}
-.nav-bal-lab{font-size:.74rem;color:var(--text);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav-bal-val{font-size:.74rem;font-weight:600;white-space:nowrap}
+.nav-bal-val{font-size:.74rem;font-weight:600;white-space:nowrap;margin-top:5px}
+.nav-bal-lab{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.35}
+.nav-bal-lab .wleg-dot{margin-right:4px}
 .nav-cat-goal{font-weight:400;color:var(--faint)}
 .nav-cat-ok{color:var(--success)}
 .nav-cat-warn{color:var(--accent)}
