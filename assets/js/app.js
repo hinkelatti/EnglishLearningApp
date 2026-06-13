@@ -2873,9 +2873,20 @@ function renderGrExercise(){
     });
     html += '</div>';
   }
+  else if(type === 'build'){
+    // Mondatszerkesztés: magyar mondat + alapalakú szavak → angol mondat (beolvasztva)
+    html += '<div class="ex-section-label">Magyar mondat</div>';
+    html += '<div class="ex-hu-text">'+(item.ex.hu||'')+'</div>';
+    if(item.ex.words && item.ex.words.length){
+      html += '<div class="ex-section-label" style="margin-top:1rem">Használd ezeket a szavakat (alapalak)</div>';
+      html += '<div class="bld-word-chips">'+item.ex.words.map(function(w){ return '<span class="bld-word-chip">'+w+'</span>'; }).join('')+'</div>';
+    }
+    html += '<div class="ex-section-label" style="margin-top:1rem">Írd le angolul</div>';
+    html += '<textarea id="ex-textarea" class="ex-textarea" placeholder="Rakd össze a mondatot..." autocorrect="off" spellcheck="false" data-answer="'+escapeAttr(item.ex.answer)+'"></textarea>';
+  }
 
-  // Nehéz módban: kinyitható hint (fill + transform típusoknál)
-  if(hardMode && (type === 'fill' || type === 'transform')){
+  // Nehéz módban: kinyitható hint (fill + transform + build típusoknál)
+  if(hardMode && (type === 'fill' || type === 'transform' || type === 'build')){
     var rmItemHard = null;
     ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===item.roadmapId) rmItemHard=i; }); });
     if(rmItemHard){
@@ -2955,6 +2966,7 @@ function checkGrAnswer(){
   if(grExState.phase === 'checked') return;
   var item = grExState.queue[grExState.idx];
   var type = item.ex.type;
+  if(type === 'build'){ checkBuildAnswer(item); return; } // szabad produkció → AI-értékelés
   var correct = item.ex.answer || '';
   var userVal = '';
 
@@ -3003,6 +3015,59 @@ function checkGrAnswer(){
   if(showAns) showAns.style.display = 'none';
   document.getElementById('btn-next').style.display = 'inline-block';
   grExState.phase = 'checked';
+}
+
+// Mondatszerkesztés (build) értékelése AI-val — paraphrase-toleráns, súly 2
+async function checkBuildAnswer(item){
+  var ta = document.getElementById('ex-textarea');
+  if(!ta || !ta.value.trim()) return;
+  var userVal = ta.value.trim();
+  ta.disabled = true;
+  grExState.phase = 'checked'; // dupla beküldés ellen
+  var fb = document.getElementById('ex-feedback');
+  if(fb){ fb.className = 'ex-feedback'; fb.style.display = 'block'; fb.innerHTML = 'Ellenőrzés...'; }
+  var isCorrect = false, corrected = item.ex.answer || '';
+  try{
+    var r = await claude(
+      'You are an English grammar teacher for a Hungarian learner. Evaluate this sentence-building answer. Accept any answer that correctly uses the target grammar and conveys the meaning (paraphrases are fine). Return ONLY valid JSON, single line, no double quotes inside values: {"correct":true/false,"score":1-10,"feedback":"short HU note","corrected":"correct English sentence"}.',
+      'Hungarian: '+(item.ex.hu||'')+'\nExpected: '+(item.ex.answer||'')+'\nStudent: '+userVal,
+      400
+    );
+    var d = safeParseJSON(r);
+    isCorrect = !!(d.correct || d.score>=8);
+    if(d.corrected) corrected = d.corrected;
+    if(fb){
+      fb.className = 'ex-feedback ' + (isCorrect?'correct':'wrong');
+      fb.innerHTML = (isCorrect ? '✓ Helyes! ' : '✗ ') + (isCorrect ? '' : (d.feedback||'Nem pontos.'))
+        + (isCorrect ? '' : '<div class="ex-explanation">Helyes: '+corrected+'</div>');
+    }
+  }catch(e){
+    // hálózati hiba esetén laza helyi ellenőrzés
+    isCorrect = normalise(userVal) === normalise(item.ex.answer||'');
+    if(fb){ fb.className='ex-feedback '+(isCorrect?'correct':'wrong'); fb.innerHTML = isCorrect?'✓ Helyes!':'✗ Helyes: '+(item.ex.answer||''); }
+  }
+  var rid = item.roadmapId;
+  if(!grExState.perItem[rid]) grExState.perItem[rid] = {correct:0, total:0};
+  if(isCorrect){ grExState.score.correct++; grExState.perItem[rid].correct++; }
+  grExState.score.total++; grExState.perItem[rid].total++;
+  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight('build')); // súly 2
+  var showAns = document.getElementById('btn-show-ans');
+  if(showAns) showAns.style.display = 'none';
+  document.getElementById('btn-next').style.display = 'inline-block';
+}
+
+// Egy build (mondatszerkesztés) feladat AI-generálása egy igeidőhöz
+async function aiGenBuildItem(tenseName, level){
+  try{
+    var r = await claude(
+      'Output ONLY a JSON object with keys: hu, answer, words. No markdown, no extra text.',
+      'Tense: '+tenseName+'. Level: '+level+'. Generate a sentence-building exercise in a business or everyday context. Return JSON: hu (Hungarian translation), answer (correct English sentence), words (array of 5-8 base-form content words, no articles or auxiliaries).',
+      400
+    );
+    var d = safeParseJSON(r);
+    if(d && d.hu && d.answer && Array.isArray(d.words)) return {type:'build', hu:d.hu, answer:d.answer, words:d.words};
+  }catch(e){}
+  return null;
 }
 
 function showGrAnswer(){
@@ -3099,6 +3164,11 @@ async function generateMoreExercises(){
       );
       var newEx = safeParseJSON(r);
       if(!Array.isArray(newEx)) newEx = [newEx];
+      // Igeidő-témákhoz mondatszerkesztés (build) feladat is — beolvasztott funkció
+      if(item.category === 'tense'){
+        var bld = await aiGenBuildItem(item.name, item.level);
+        if(bld) newEx.push(bld);
+      }
       var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
       cached = cached.concat(newEx);
       localStorage.setItem('ex_cache_'+id, JSON.stringify(cached));
