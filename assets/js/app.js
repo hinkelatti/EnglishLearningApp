@@ -84,7 +84,7 @@ var Store = (function(){
     var token = _token();
     if(!token){ if(onDone) onDone(0); return; }
     var keys = ['oxford_words','oxford_phrases','anki_cards',
-                'practice_hard_mode','active_main','active_tense_tab'];
+                'active_main','active_tense_tab'];
     var pending = 0;
     keys.forEach(function(k){
       var raw = localStorage.getItem(k);
@@ -206,25 +206,8 @@ function renderOverviewDonut(active, total){
 }
 
 // ============================================================
-// NEHÉZ MÓD — igeidő neve rejtett + hint elérhető a Gyakorlás fülön
+// Gyakorlás: a nyelvtani segítség mindig elérhető, alapból bezárva
 // ============================================================
-var hardMode = Store.get('practice_hard_mode', false);
-
-function toggleHardMode(){
-  hardMode = !hardMode;
-  Store.set('practice_hard_mode', hardMode);
-  updateHardModeBtn();
-}
-
-function updateHardModeBtn(){
-  var btn = document.getElementById('hard-mode-btn');
-  var desc = document.getElementById('hard-mode-desc');
-  if(btn) btn.classList.toggle('active', hardMode);
-  if(desc) desc.textContent = hardMode
-    ? 'Az igeidő neve rejtett — döntsd el magad'
-    : 'Az igeidő neve és szintje látható';
-}
-
 function toggleGrHint(){
   var body = document.getElementById('gr-hint-body');
   var icon = document.getElementById('gr-hint-icon');
@@ -1350,7 +1333,6 @@ function launchApp(){
     renderOxWordlist();
     renderPhrases();
   });
-  updateHardModeBtn();
   // Társalgás TTS: mentett állapot visszatöltése (kapcsoló + tempó)
   var ttsBtn=document.getElementById('convo-tts-btn');
   if(ttsBtn) ttsBtn.classList.toggle('active', convoTTSEnabled);
@@ -2758,6 +2740,7 @@ function renderTenseSelector(){
     toggleTense(id);
   };
   renderExTypeChips();
+  renderExFormChips();
   updateTenseSelectSummary();
 }
 
@@ -2776,7 +2759,8 @@ function updateTenseSelectSummary(){
   if(!el) return;
   var n = selectedTenses.size;
   var typeTxt = selectedExTypes.size===0 ? 'Auto' : selectedExTypes.size+' típus';
-  el.textContent = (n ? n+' téma' : 'Témák kiválasztása') + ' · ' + typeTxt;
+  var formTxt = selectedExForm==='any' ? '' : ' · '+({pos:'állítás',neg:'tagadás',q:'kérdés'}[selectedExForm]||'');
+  el.textContent = (n ? n+' téma' : 'Témák kiválasztása') + ' · ' + typeTxt + formTxt;
 }
 
 // --- Feladattípus-választó (Auto + típusonként, mixelhető) ---
@@ -2811,6 +2795,24 @@ function toggleExType(key){
 function eligibleExTypes(){
   return selectedExTypes.size ? selectedExTypes : new Set(PRACTICE_TYPES.map(function(t){ return t.key; }));
 }
+
+// --- Mondatforma-választó (Mix / + / − / ?), csak ahol értelmezhető (igeidők) ---
+var EX_FORMS = [{key:'pos', label:'Állítás +'}, {key:'neg', label:'Tagadás −'}, {key:'q', label:'Kérdés ?'}];
+var selectedExForm = 'any'; // 'any' = mix
+
+function renderExFormChips(){
+  var c = document.getElementById('ex-form-chips');
+  if(!c) return;
+  var html = '<button class="ex-type-chip'+(selectedExForm==='any'?' selected':'')+'" onclick="setExForm(\'any\')">Mix</button>';
+  EX_FORMS.forEach(function(f){
+    html += '<button class="ex-type-chip'+(selectedExForm===f.key?' selected':'')+'" onclick="setExForm(\''+f.key+'\')">'+f.label+'</button>';
+  });
+  c.innerHTML = html;
+}
+
+function setExForm(key){ selectedExForm = key; renderExFormChips(); updateTenseSelectSummary(); }
+
+var SENTTYPE_OF = {pos:'positive', neg:'negative', q:'question'};
 
 function saveExerciseHistory(roadmapId, correct, total){
   var history = JSON.parse(localStorage.getItem('ex_history') || '[]');
@@ -2878,8 +2880,10 @@ async function startExercises(){
   document.getElementById('exercise-area').style.display = 'none';
   show('ex-loading'); dis('btn-start-ex', true);
 
+  var formSel = selectedExForm; // 'any' | 'pos' | 'neg' | 'q'
+
   // Build top-up: ha a 'build' típus engedélyezett és egy igeidő-témához még nincs
-  // build a cache-ben, generálunk egyet (egyszer, utána a cache-ből megy).
+  // (a választott formájú) build a cache-ben, generálunk egyet — utána a cache-ből megy.
   if(eligible.has('build')){
     var tids = Array.from(selectedTenses);
     for(var ti=0; ti<tids.length; ti++){
@@ -2887,23 +2891,28 @@ async function startExercises(){
       var titem = GRAMMAR_EXERCISES[tid];
       if(!titem || titem.category !== 'tense') continue;
       var tcache = JSON.parse(localStorage.getItem('ex_cache_'+tid) || '[]');
-      var hasBuild = titem.exercises.concat(tcache).some(function(ex){ return ex && ex.type==='build'; });
+      var hasBuild = titem.exercises.concat(tcache).some(function(ex){
+        return ex && ex.type==='build' && (formSel==='any' || exForm(ex)===formSel);
+      });
       if(!hasBuild){
-        var b = await aiGenBuildItem(titem.name, titem.level);
+        var b = await aiGenBuildItem(titem.name, titem.level, formSel==='any'?null:SENTTYPE_OF[formSel]);
         if(b){ tcache.push(b); localStorage.setItem('ex_cache_'+tid, JSON.stringify(tcache)); }
       }
     }
   }
 
-  // Sor összeállítása: kiválasztott témák × engedélyezett típusok, deduplikálva
+  // Sor összeállítása: kiválasztott témák × engedélyezett típusok (+ forma igeidőknél), deduplikálva
   var queue = [];
   selectedTenses.forEach(function(id){
     var item = GRAMMAR_EXERCISES[id];
     if(!item) return;
+    var isTense = item.category === 'tense';
     var cached = JSON.parse(localStorage.getItem('ex_cache_'+id) || '[]');
     var seen = {};
     item.exercises.concat(cached).forEach(function(ex){
       if(!ex || !ex.type || !eligible.has(ex.type)) return;
+      // forma-szűrés csak igeidőknél, ahol értelmezhető
+      if(formSel!=='any' && isTense && exForm(ex)!==formSel) return;
       var sig = exSignature(ex);
       if(seen[sig]) return; // ismétlődő feladat kiszűrése
       seen[sig] = true;
@@ -2944,10 +2953,10 @@ function renderGrExercise(){
   var type = item.ex.type;
 
   var html = '<div class="ex-card">';
-  // Header: level badge + topic (nehéz módban rejtett)
+  // Header: szint + téma (mindig látható)
   html += '<div class="ex-card-header">'
-    + (hardMode ? '' : '<span class="ex-tense-badge">'+item.level+'</span>')
-    + (hardMode ? '' : '<span style="font-size:.84rem;color:var(--muted)">'+item.itemName+'</span>')
+    + '<span class="ex-tense-badge">'+item.level+'</span>'
+    + '<span style="font-size:.84rem;color:var(--muted)">'+item.itemName+'</span>'
     + '<span class="ex-counter">'+(grExState.idx+1)+' / '+grExState.queue.length
     + ' &nbsp; <span class="ex-score-good">'+grExState.score.correct+' helyes</span></span>'
     + '</div>';
@@ -3002,19 +3011,17 @@ function renderGrExercise(){
     html += '<textarea id="ex-textarea" class="ex-textarea" placeholder="Rakd össze a mondatot..." autocorrect="off" spellcheck="false" data-answer="'+escapeAttr(item.ex.answer)+'"></textarea>';
   }
 
-  // Nehéz módban: kinyitható hint (fill + transform + build típusoknál)
-  if(hardMode && (type === 'fill' || type === 'transform' || type === 'build')){
-    var rmItemHard = null;
-    ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===item.roadmapId) rmItemHard=i; }); });
-    if(rmItemHard){
-      html += '<div class="to-hint-wrap">';
-      html += '<button class="to-hint-btn" onclick="toggleGrHint()">'
-        + '<span id="gr-hint-icon">▶</span> Segítség — nyelvtani magyarázat</button>';
-      html += '<div id="gr-hint-body" style="display:none">';
-      html += '<div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:.4rem">'+item.itemName+'</div>';
-      html += renderRoadmapItem(rmItemHard, true);
-      html += '</div></div>';
-    }
+  // Nyelvtani segítség — mindig elérhető, alapból bezárva
+  var rmItemHint = null;
+  ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===item.roadmapId) rmItemHint=i; }); });
+  if(rmItemHint){
+    html += '<div class="to-hint-wrap">';
+    html += '<button class="to-hint-btn" onclick="toggleGrHint()">'
+      + '<span id="gr-hint-icon">▶</span> Segítség — nyelvtani magyarázat</button>';
+    html += '<div id="gr-hint-body" style="display:none">';
+    html += '<div style="font-size:.8rem;font-weight:600;color:var(--accent);margin-bottom:.4rem">'+item.itemName+'</div>';
+    html += renderRoadmapItem(rmItemHint, true);
+    html += '</div></div>';
   }
 
   html += '<div id="ex-feedback" class="ex-feedback" style="display:none"></div>';

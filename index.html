@@ -708,10 +708,6 @@
       <div id="tpanel-practice" class="tpanel active">
         <div class="section-title">Nyelvtani gyakorló</div>
         <div class="section-sub">Válaszd ki a gyakorolni kívánt témákat, majd old meg a feladatokat.</div>
-        <div class="hard-mode-bar">
-          <button class="writing-type-btn" id="hard-mode-btn" onclick="toggleHardMode()">🔒 Nehéz mód</button>
-          <span class="hard-mode-desc" id="hard-mode-desc">Az igeidő neve és szintje látható</span>
-        </div>
         <button id="tense-select-header" onclick="toggleTenseSelect()" class="select-collapse-header">
           <span id="tense-select-summary">Témák kiválasztása</span>
           <span id="tense-select-arrow">▾</span>
@@ -719,6 +715,8 @@
         <div id="tense-setup-body">
           <div class="tense-setup-label">Feladattípusok</div>
           <div id="ex-type-chips" class="ex-type-chips"></div>
+          <div class="tense-setup-label" style="margin-top:1rem">Mondatforma <span class="gentext-hint">(ahol értelmezhető)</span></div>
+          <div id="ex-form-chips" class="ex-type-chips"></div>
           <div class="tense-setup-label" style="margin-top:1rem">Témák</div>
           <div id="tense-select-grid" class="tense-select-grid"></div>
         </div>
