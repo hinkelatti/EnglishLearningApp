@@ -252,16 +252,6 @@
           </div>
         </div>
 
-        <div class="level-box" id="level-box">
-          <div class="level-header">
-            <span class="level-title">🎓 Szint és heti visszajelzés</span>
-            <button class="btn btn-outline btn-sm" onclick="generateLevelReport(true)">🔄 Frissítés most</button>
-          </div>
-          <div id="level-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Visszajelzés készítése a gyakorlásaid alapján...</div>
-          <div id="level-content"></div>
-          <div id="level-history"></div>
-        </div>
-
         <div class="weekly-chart-box">
           <div class="section-label" style="margin-bottom:.8rem">Heti egyensúly — elmúlt 7 nap</div>
           <div id="week-nav-summary"></div>
@@ -272,6 +262,16 @@
             <span><span class="wleg-dot" style="background:#22c55e"></span>Output — produkció (Fordítás, Írás, Társalgás)</span>
             <span><span class="wleg-dot" style="background:#f59e0b"></span>Tudatos — Nyelvtan + Igeidők + Anki</span>
           </div>
+        </div>
+
+        <div class="level-box" id="level-box">
+          <div class="level-header">
+            <span class="level-title">🎓 Szint és heti visszajelzés</span>
+            <button class="btn btn-outline btn-sm" onclick="generateLevelReport(true)">🔄 Frissítés most</button>
+          </div>
+          <div id="level-loading" style="display:none" class="loading"><div class="dots"><span></span><span></span><span></span></div> Visszajelzés készítése a gyakorlásaid alapján...</div>
+          <div id="level-content"></div>
+          <div id="level-history"></div>
         </div>
 
         <!-- TANULÁSI ASSZISZTENS -->
