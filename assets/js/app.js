@@ -526,7 +526,8 @@ function logSkillResult(type, score, count){
 // Roadmap-elem szintű bizonyíték: helyes/hibás használat egy nyelvtani témán.
 // A friss esemény többet nyom (lásd itemMastery), naptári kopás nincs — csak hiba ront.
 // weight: a feladat típusa szerinti súly (felismerés kevesebbet, produkció többet).
-function addItemEvidence(roadmapId, correct, wrong, weight){
+// form: 'pos'|'neg'|'q'|null — igeidőknél a forma-lefedettséghez (állítás/tagadás/kérdés).
+function addItemEvidence(roadmapId, correct, wrong, weight, form){
   if(!roadmapId || !roadmapItem(roadmapId)) return; // csak valós roadmap-elem
   correct = correct||0; wrong = wrong||0;
   if(!correct && !wrong) return;
@@ -534,6 +535,9 @@ function addItemEvidence(roadmapId, correct, wrong, weight){
   var ev = JSON.parse(localStorage.getItem('item_evidence')||'{}');
   var e = ev[roadmapId] || {correct:0, wrong:0, events:[], lastSeen:null};
   e.correct += correct; e.wrong += wrong; e.lastSeen = getTodayStr();
+  // forma-lefedettség: csak a HELYES használat számít, súlyozva (kumulatív)
+  if(!e.forms) e.forms = {pos:0, neg:0, q:0};
+  if(correct>0 && form && e.forms.hasOwnProperty(form)) e.forms[form] += correct*weight;
   // esemény-napló a recency-súlyozáshoz: {o:helyes?1:0, w:súly} — csak az utolsó 40 marad
   var k;
   for(k=0; k<correct; k++) e.events.push({o:1, w:weight});
@@ -546,6 +550,28 @@ function addItemEvidence(roadmapId, correct, wrong, weight){
 // Feladattípus-súlyok az előrehaladáshoz (felismerés < irányított < produkció)
 var EX_WEIGHT = {choice:0.5, banked:0.75, matching:0.75, fill:1, error:1, wordform:1, cloze:1.5, transform:1.5, keyword:1.5, build:2};
 function exWeight(type){ return EX_WEIGHT[type] || 1; }
+
+// Egy feladat mondatformája: 'pos' (állítás) | 'neg' (tagadás) | 'q' (kérdés)
+function inferForm(text){
+  text = (text||'').toLowerCase();
+  if(text.indexOf('?') > -1) return 'q';
+  if(/\b(not|n't|never|no one|nobody|nothing|none|cannot)\b/.test(text)) return 'neg';
+  return 'pos';
+}
+function exForm(ex){
+  if(!ex) return null;
+  if(ex.type === 'build' && ex.sentType){
+    return {positive:'pos', negative:'neg', question:'q'}[ex.sentType] || inferForm(ex.answer);
+  }
+  var t;
+  switch(ex.type){
+    case 'fill':   t=(ex.pre||'')+' '+(ex.answer||'')+' '+(ex.post||''); break;
+    case 'choice': t=(ex.options && ex.correct!=null) ? ex.options[ex.correct] : (ex.question||''); break;
+    case 'error':  t=ex.sentence||''; break;
+    default:       t=ex.answer||ex.source||ex.sentence||'';
+  }
+  return inferForm(t);
+}
 
 // Kompakt roadmap-témalista a produkciós értékelő promptokhoz ("id = English name (Level)")
 function roadmapTopicsForPrompt(){
@@ -570,9 +596,20 @@ function recordAttribution(attr){
 //  - A pontszám recency-súlyozott pontosság (újabb esemény többet nyom, naptári kopás nincs).
 //  - A mennyiség csak belépő-kapu a zöldhöz; helyes éles használat teljes értékű.
 //  - Csak hiba ront (zöld→narancs). Adat híján a kézi státuszt tükrözi.
-var MASTERY_GATE = 6;     // ennyi esemény kell a zöld jogosultsághoz
-var MASTERY_GREEN = 0.8;  // recency-súlyozott pontosság küszöbe a zöldhöz
+var MASTERY_GATE = 6;     // ennyi (súlyozott) esemény kell a zöld jogosultsághoz
+var MASTERY_GREEN = 0.85; // recency-súlyozott pontosság küszöbe a zöldhöz
 var MASTERY_DECAY = 0.85; // recency-súly: a legutolsó esemény súlya 1, a régebbiek fakulnak
+var FORM_MIN = 2;         // igeidőknél formánként (állítás/tagadás/kérdés) ennyi súlyozott helyes kell
+
+// Igeidőknél a zöldhöz mindhárom formát demonstrálni kell (állítással önmagában nem elég).
+// Ha még nincs forma-adat (pl. csak éles produkció), a forma-kapu nem blokkol.
+function masteryFormsOk(id, ev){
+  var isTense = (typeof GRAMMAR_EXERCISES !== 'undefined') && GRAMMAR_EXERCISES[id] && GRAMMAR_EXERCISES[id].category === 'tense';
+  if(!isTense) return true;
+  var f = (ev && ev.forms) || {pos:0, neg:0, q:0};
+  if((f.pos + f.neg + f.q) <= 0) return true; // nincs forma-adat → ne blokkoljon
+  return f.pos >= FORM_MIN && f.neg >= FORM_MIN && f.q >= FORM_MIN;
+}
 function itemMastery(id){
   var ev = (JSON.parse(localStorage.getItem('item_evidence')||'{}'))[id];
   var events = (ev && ev.events) ? ev.events : [];
@@ -589,7 +626,8 @@ function itemMastery(id){
     }
     var accuracy = denom ? acc/denom : 0;
     var count = (ev.correct||0) + (ev.wrong||0);
-    return {state:(vol>=MASTERY_GATE && accuracy>=MASTERY_GREEN)?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
+    var green = vol>=MASTERY_GATE && accuracy>=MASTERY_GREEN && masteryFormsOk(id, ev);
+    return {state: green?'green':'orange', score:Math.round(accuracy*100), count:count, lastSeen:ev.lastSeen};
   }
   // élő bizonyíték híján a korábbi nyelvtani gyakorlás előzménye (pre-evidence adat)
   var hist=JSON.parse(localStorage.getItem('ex_history')||'[]').filter(function(h){ return h.roadmapId===id; });
@@ -3009,7 +3047,7 @@ function selectChoice(el, idx){
   }
   grExState.score.total++;
   grExState.perItem[rid2].total++;
-  addItemEvidence(rid2, isCorrect?1:0, isCorrect?0:1, exWeight('choice')); // súlyozott tudásszint-jel
+  addItemEvidence(rid2, isCorrect?1:0, isCorrect?0:1, exWeight('choice'), exForm(grExState.queue[grExState.idx].ex)); // súlyozott tudásszint-jel + forma
   showGrFeedback(isCorrect, grExState.queue[grExState.idx].ex);
   document.getElementById('btn-next').style.display = 'inline-block';
   grExState.phase = 'checked';
@@ -3071,7 +3109,7 @@ function checkGrAnswer(){
   if(isCorrect){ grExState.score.correct++; grExState.perItem[rid].correct++; }
   grExState.score.total++;
   grExState.perItem[rid].total++;
-  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight(type)); // súlyozott tudásszint-jel
+  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight(type), exForm(item.ex)); // súlyozott tudásszint-jel + forma
 
   if(type === 'fill'){
     var inp2 = document.getElementById('ex-input');
@@ -3118,22 +3156,24 @@ async function checkBuildAnswer(item){
   if(!grExState.perItem[rid]) grExState.perItem[rid] = {correct:0, total:0};
   if(isCorrect){ grExState.score.correct++; grExState.perItem[rid].correct++; }
   grExState.score.total++; grExState.perItem[rid].total++;
-  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight('build')); // súly 2
+  addItemEvidence(rid, isCorrect?1:0, isCorrect?0:1, exWeight('build'), exForm(item.ex)); // súly 2 + forma
   var showAns = document.getElementById('btn-show-ans');
   if(showAns) showAns.style.display = 'none';
   document.getElementById('btn-next').style.display = 'inline-block';
 }
 
 // Egy build (mondatszerkesztés) feladat AI-generálása egy igeidőhöz
-async function aiGenBuildItem(tenseName, level){
+async function aiGenBuildItem(tenseName, level, form){
+  // forma rotálása, hogy a tagadás/kérdés is gyakorolható legyen (forma-lefedettség)
+  var sentType = form || ['positive','negative','question'][Math.floor(Math.random()*3)];
   try{
     var r = await claude(
       'Output ONLY a JSON object with keys: hu, answer, words. No markdown, no extra text.',
-      'Tense: '+tenseName+'. Level: '+level+'. Generate a sentence-building exercise in a business or everyday context. Return JSON: hu (Hungarian translation), answer (correct English sentence), words (array of 5-8 base-form content words, no articles or auxiliaries).',
+      'Tense: '+tenseName+'. Sentence type: '+sentType+'. Level: '+level+'. Generate a sentence-building exercise in a business or everyday context. Return JSON: hu (Hungarian translation), answer (correct English sentence in the '+sentType+' form), words (array of 5-8 base-form content words, no articles or auxiliaries).',
       400
     );
     var d = safeParseJSON(r);
-    if(d && d.hu && d.answer && Array.isArray(d.words)) return {type:'build', hu:d.hu, answer:d.answer, words:d.words};
+    if(d && d.hu && d.answer && Array.isArray(d.words)) return {type:'build', hu:d.hu, answer:d.answer, words:d.words, sentType:sentType};
   }catch(e){}
   return null;
 }
@@ -3144,7 +3184,7 @@ function showGrAnswer(){
   if(!grExState.perItem[rid3]) grExState.perItem[rid3] = {correct:0, total:0};
   grExState.perItem[rid3].total++;
   grExState.score.total++;
-  addItemEvidence(rid3, 0, 1, exWeight(item.ex.type)); // megmutatott válasz = hibás jel
+  addItemEvidence(rid3, 0, 1, exWeight(item.ex.type), exForm(item.ex)); // megmutatott válasz = hibás jel
   var fb = document.getElementById('ex-feedback');
   fb.className = 'ex-feedback wrong';
   fb.innerHTML = 'Helyes válasz: <strong>'+(item.ex.answer||'')+'</strong>'
@@ -3252,7 +3292,7 @@ async function generateMoreExercises(){
         .filter(Boolean).slice(-8).join(' | ');
 
       var r = await claude(
-        'You are an English grammar exercise creator for a Hungarian B1 learner. Generate 3 NEW, varied exercises for the given grammar topic — do not repeat the avoid list. Return ONLY valid JSON array with objects having these fields: type (fill|transform|error|choice), and type-specific fields. For fill: hu (HU context), pre, post, answer, hint. For transform: instruction, source, answer, hint. For error: sentence, answer, explanation. For choice: question, options (array of 4), correct (0-3 index). Use business English context. No markdown.',
+        'You are an English grammar exercise creator for a Hungarian B1 learner. Generate 3 NEW, varied exercises for the given grammar topic — do not repeat the avoid list. Include a MIX of affirmative, negative AND question forms across the exercises (not only affirmative). Return ONLY valid JSON array with objects having these fields: type (fill|transform|error|choice), and type-specific fields. For fill: hu (HU context), pre, post, answer, hint. For transform: instruction, source, answer, hint. For error: sentence, answer, explanation. For choice: question, options (array of 4), correct (0-3 index). Use business English context. No markdown.',
         'Grammar topic: ' + item.name + ' ('+id+'). Level: ' + item.level + '. Generate 3 varied exercises.'
           + (avoid ? '\nAvoid repeating these (already used): ' + avoid : '')
       );
