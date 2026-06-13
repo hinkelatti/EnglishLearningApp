@@ -859,6 +859,7 @@ function renderWeekNavigator() {
         + (met?'<span class="nav-day-check">✓</span>':'')
         + (isToday?'Ma':dayNames[c.date.getDay()])
       + '</div>'
+      + '<div class="weekly-day-min">'+(totalMin>0?totalMin+'p':'–')+'</div>'
     + '</div>';
   });
   wrap.innerHTML = html;
