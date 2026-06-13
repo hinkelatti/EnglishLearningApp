@@ -2614,39 +2614,14 @@ function openModal(id){
   ROADMAP.forEach(function(band){ band.items.forEach(function(i){ if(i.id===id) item=i; }); });
   if(!item) return;
   currentModalId=id;
-  var status=grStatuses[id]||'todo';
   var modal=document.getElementById('gr-modal');
   var title=document.getElementById('modal-title');
   var body=document.getElementById('modal-body');
   if(!modal||!title||!body) return;
   title.textContent=(item.en||item.title)+(item.en?' — '+item.title:'');
-  updateStatusBtns(status);
   var html = masteryModalHtml(id) + renderRoadmapItem(item);
   body.innerHTML = html;
   modal.style.display='flex';
-}
-
-function updateStatusBtns(status){
-  document.querySelectorAll('.status-btn').forEach(function(b){ b.classList.remove('active'); });
-  var id=status==='todo'?'sbtn-todo':status==='learning'?'sbtn-learning':'sbtn-done';
-  var btn=document.getElementById(id);
-  if(btn) btn.classList.add('active');
-}
-
-function setGrStatus(status){
-  if(!currentModalId) return;
-  grStatuses[currentModalId]=status;
-  localStorage.setItem('gr_statuses',JSON.stringify(grStatuses));
-  updateStatusBtns(status);
-  var box=document.getElementById('box-'+currentModalId);
-  if(box){
-    box.className='grammar-box status-'+status;
-    var icon=box.querySelector('.grammar-box-status');
-    if(icon) icon.textContent=status==='done'?'✅':status==='learning'?'🔵':'⬜';
-    var bar=box.querySelector('.mastery-bar'); // a sáv is frissüljön (adat híján a kézi státuszt tükrözi)
-    if(bar) bar.outerHTML=masteryBarHtml(currentModalId);
-  }
-  updateRoadmapProgress();
 }
 
 function closeModal(){
@@ -3163,7 +3138,7 @@ function convoStart(){
   document.getElementById('convo-level-label').textContent=convoLevel+' szint';
   document.getElementById('topic-picker').style.display='none';
   document.getElementById('convo-main').style.display='block';
-  convoSystemPrompt='You are a friendly encouraging conversation partner helping a Hungarian '+convoLevel+' English learner practice. Topic: "'+fullTopic+'". Rules: 2-3 sentences max per reply, natural '+convoLevel+' level English, ask a follow-up question, stay on topic. Start with a warm natural opening.';
+  convoSystemPrompt='You are a friendly encouraging conversation partner helping a Hungarian '+convoLevel+' English learner practice. Topic: "'+fullTopic+'". Rules: 2-3 sentences max per reply, natural '+convoLevel+' level English, ask a follow-up question, stay on topic. Never use emojis, emoticons or smileys. Start with a warm natural opening.';
   convoGetReply();
 }
 

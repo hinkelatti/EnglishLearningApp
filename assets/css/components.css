@@ -43,12 +43,6 @@
 .example-block .en{color:var(--text);font-style:italic}
 .example-block .hu{color:var(--muted);font-size:.82rem;margin-top:2px}
 .warning-box{background:rgba(168,48,48,.07);border:1px solid rgba(168,48,48,.2);border-radius:var(--rs);padding:.65rem .9rem;font-size:.83rem;color:var(--danger);margin:.5rem 0}
-.modal-status-row{display:flex;gap:7px;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
-.status-btn{padding:7px 15px;border-radius:var(--rs);border:1.5px solid var(--border2);background:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.83rem;font-weight:500;color:var(--muted);transition:all .15s}
-.status-btn:hover{border-color:var(--accent);color:var(--text)}
-.active-todo{border-color:var(--faint);color:var(--muted);background:var(--surface2)}
-.active-learning{border-color:var(--accent);color:var(--accent);background:rgba(138,94,42,.08)}
-.active-done{border-color:var(--accent2);color:var(--accent2);background:rgba(46,110,72,.08)}
 .modal-example{margin-bottom:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border)}
 .modal-example:last-child{border-bottom:none}
 .ex-en{font-size:.9rem;font-weight:500;color:var(--text);margin-bottom:.2rem}
