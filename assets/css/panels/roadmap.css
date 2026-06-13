@@ -54,17 +54,43 @@
 .daily-task-text{font-size:.88rem;line-height:1.5}
 .daily-task-tag{font-size:.72rem;padding:2px 8px;background:rgba(138,94,42,.1);color:var(--accent);border-radius:99px;margin-left:6px}
 
-/* Heti aktivitás grafikon — halmozott (kék: app, narancs: Anki) */
+/* Heti egyensúly-navigátor */
 .weekly-chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.5rem}
-.weekly-activity-row{display:flex;gap:6px;align-items:flex-end;height:60px}
+.weekly-activity-row{display:flex;gap:6px;align-items:flex-end}
 .weekly-day-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
-.weekly-bar-stack{display:flex;flex-direction:column-reverse;width:100%;gap:0}
-.weekly-app-fill{width:100%;background:var(--accent2);transition:height .3s}
-.weekly-anki-fill{width:100%;background:var(--accent);border-radius:3px 3px 0 0;transition:height .3s}
+.weekly-bar-stack{display:flex;flex-direction:column-reverse;width:100%;gap:0;position:relative;justify-content:flex-start;border-radius:3px 3px 0 0;overflow:hidden}
+.nav-bar-fill{width:100%;transition:height .3s}
+.nav-goal-line{position:absolute;left:0;right:0;border-top:1.5px dashed var(--accent);opacity:.6;z-index:2;pointer-events:none}
 .weekly-day-label{font-size:.68rem;color:var(--muted)}
 .wdl-today{color:var(--accent);font-weight:700}
-.weekly-legend{display:flex;gap:14px;margin-top:.8rem;font-size:.72rem;color:var(--muted);align-items:center}
+.nav-day-check{color:var(--success);font-weight:700;margin-right:2px}
+.weekly-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:.8rem;font-size:.72rem;color:var(--muted);align-items:center}
 .wleg-dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* Navigátor — összegző kártya */
+.nav-total-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin-bottom:.5rem}
+.nav-total-num{font-family:'Inter',sans-serif;font-size:1.7rem;font-weight:600;color:var(--text);line-height:1}
+.nav-total-goal{font-size:.85rem;color:var(--muted)}
+.nav-days-met{margin-left:auto;font-size:.78rem;color:var(--muted)}
+.nav-ok{color:var(--success);font-weight:700}
+.nav-warn{color:var(--accent);font-weight:700}
+.nav-time-track{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:1rem}
+.nav-time-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+.nav-ratio-track{position:relative;display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--surface2)}
+.nav-ratio-track>div{height:100%;transition:width .3s}
+.nav-tick{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px solid var(--text);opacity:.65}
+.nav-ratio-legend{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:.74rem;color:var(--muted);margin:.35rem 0 .8rem}
+.nav-target-txt{color:var(--faint)}
+.nav-chips{display:flex;flex-wrap:wrap;gap:6px}
+.nav-chip{font-size:.74rem;padding:3px 9px;border-radius:99px;border:1px solid var(--border2);background:var(--surface2)}
+.nav-chip-ok{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07)}
+.nav-chip-warn{border-color:rgba(138,94,42,.4);background:rgba(138,94,42,.07)}
+.nav-verdict{margin-top:.7rem;font-size:.82rem;line-height:1.5;padding:.55rem .8rem;border-radius:var(--rs)}
+.nav-verdict-ok{background:rgba(34,197,94,.08);color:var(--text);border-left:3px solid var(--success)}
+.nav-verdict-warn{background:rgba(138,94,42,.08);color:var(--text);border-left:3px solid var(--accent)}
+.nav-verdict-neutral{background:var(--surface2);color:var(--muted)}
+.nav-daily-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:1.2rem 0 .7rem}
+.nav-daily-hint{font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)}
 
 /* Heti napló */
 .weekly-log-new{margin-bottom:1rem}

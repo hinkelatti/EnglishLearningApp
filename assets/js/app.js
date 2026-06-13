@@ -447,20 +447,19 @@ function renderProgressOverview() {
   var errEl = document.getElementById('stat-errors');
   if (errEl) errEl.textContent = activeErrors || '0';
 
-  // Heti tanulási percek összesítése
-  var weekStart = getWeekStart();
+  // Elmúlt 7 nap tanulási perceinek összesítése (a 3 kategória együtt)
   var timeData = JSON.parse(localStorage.getItem('learning_time') || '{}');
-  var weekMin = 0;
+  var weekSec = 0;
   for(var i = 0; i < 7; i++){
-    var wd = new Date(weekStart + 'T00:00:00'); wd.setDate(wd.getDate() + i);
-    var wds = localDateStr(wd);
-    if(timeData[wds]) weekMin += Math.round((timeData[wds].app + timeData[wds].anki) / 60);
+    var wd = new Date(); wd.setHours(0,0,0,0); wd.setDate(wd.getDate() - i);
+    var cs = dayCategorySecs(timeData[localDateStr(wd)]);
+    weekSec += cs.input + cs.output + cs.deliberate;
   }
   var sessEl = document.getElementById('stat-sessions');
-  if(sessEl) sessEl.textContent = weekMin || '0';
+  if(sessEl) sessEl.textContent = Math.round(weekSec / 60) || '0';
 
-  // Halmozott heti aktivitás-diagramm
-  renderWeeklyActivity();
+  // Heti egyensúly-navigátor
+  renderWeekNavigator();
 }
 
 // Lokális dátum YYYY-MM-DD formátumban — a toISOString() UTC-t ad, ami magyar
@@ -470,46 +469,73 @@ function localDateStr(d) {
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 
-function getWeekStart() {
-  var d = new Date();
-  var day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
-  return localDateStr(d);
-}
-
-// Tanulási idő mentése (másodperc) — 'app' vagy 'anki' típusra
-function addLearningTime(type, seconds) {
+// Tanulási idő mentése (másodperc) — kategóriánként: 'input' | 'output' | 'deliberate'
+// (Az 'anki' kulcsot a szinkron írja külön, felülírással — lásd ankiFetchReviewTimes.)
+function addLearningTime(category, seconds) {
   if(seconds < 5 || seconds > 7200) return; // 5mp alatt / 2 óra felett ignoráljuk
+  if(!category) return;
   var today = localDateStr(new Date());
   var data = JSON.parse(localStorage.getItem('learning_time') || '{}');
-  if(!data[today]) data[today] = {app: 0, anki: 0};
-  data[today][type] = (data[today][type] || 0) + seconds;
+  if(!data[today]) data[today] = {};
+  data[today][category] = (data[today][category] || 0) + seconds;
   localStorage.setItem('learning_time', JSON.stringify(data));
 }
 
-// Panel-alapú időmérő — csak tanulási panelokon méri az időt
+// Egy nap idő-bontása másodpercben, a 3 navigátor-kategóriára.
+// Tudatos = appon belüli 'deliberate' + Anki review idő. (A régi 'app' kulcs
+// nem bontható kategóriákra, ezért az új nézetben nem jelenik meg.)
+function dayCategorySecs(entry) {
+  entry = entry || {};
+  return {
+    input:      entry.input || 0,
+    output:     entry.output || 0,
+    deliberate: (entry.deliberate || 0) + (entry.anki || 0)
+  };
+}
+
+// A jelenleg aktív fő panel és Fordítás-aldfül — az időmérő kategóriájához kell
+var _activeMain = 'roadmap', _activeTranslateSub = 'text';
+
+// Az aktuális tevékenység kategóriája az időméréshez: 'input' | 'output' |
+// 'deliberate' | null (nem mért). Csak a 4 egyértelmű tevékenység számít.
+function activityCategory() {
+  if(_activeMain === 'convo')  return 'output';      // Társalgás
+  if(_activeMain === 'tenses') return 'deliberate';  // Igeidők
+  if(_activeMain === 'translate') {
+    if(_activeTranslateSub === 'comprehension') return 'input';      // Szövegértés
+    if(_activeTranslateSub === 'writing' || _activeTranslateSub === 'uzleti') return 'output'; // Fordítás, Írás
+    if(_activeTranslateSub === 'grammar') return 'deliberate';       // Nyelvtani elemző
+    return null; // Szöveg generálás — nem mért
+  }
+  return null; // Szótár, Haladás — nem mért
+}
+
+// Kategória-alapú időmérő — csak a tanulási tevékenységek idejét méri
 var _panelTimer = {
-  panel: null, start: null, idle: false,
-  PANELS: ['translate', 'oxford', 'convo', 'tenses'],
-  begin: function(name) {
+  cat: null, start: null, idle: false,
+  // Újraszámolja az aktuális kategóriát; ha váltott, flushöli az eddigit és újraindít
+  sync: function() {
+    var c = activityCategory();
+    if(c === this.cat) return;
     this.stop();
-    if(this.PANELS.indexOf(name) > -1) { this.panel = name; this.start = Date.now(); }
+    this.cat = c;
+    this.start = (c && !document.hidden) ? Date.now() : null;
   },
   stop: function() {
-    if(this.panel && this.start) {
-      addLearningTime('app', Math.floor((Date.now() - this.start) / 1000));
+    if(this.cat && this.start) {
+      addLearningTime(this.cat, Math.floor((Date.now() - this.start) / 1000));
     }
-    this.panel = null; this.start = null; this.idle = false;
+    this.cat = null; this.start = null; this.idle = false;
   },
   // endMs: meddig számoljuk az időt (inaktivitásnál az utolsó aktivitás pillanatáig)
   pause: function(endMs) {
-    if(this.panel && this.start) {
-      addLearningTime('app', Math.floor(((endMs || Date.now()) - this.start) / 1000));
+    if(this.cat && this.start) {
+      addLearningTime(this.cat, Math.floor(((endMs || Date.now()) - this.start) / 1000));
       this.start = null;
     }
   },
   // csak akkor indítjuk újra, ha tényleg áll — különben elveszne a futó szakasz
-  resume: function() { if(this.panel && !this.start) this.start = Date.now(); }
+  resume: function() { if(this.cat && !this.start) this.start = Date.now(); }
 };
 
 // Inaktivitás-figyelés: ha 3 percig nincs egér/billentyű/érintés aktivitás, az
@@ -535,56 +561,135 @@ setInterval(function() {
   }
 }, 30000);
 
-function renderWeeklyActivity() {
+// Heti egyensúly-navigátor: input/output/tudatos arány + napi 1 óra teljesülése
+// az elmúlt 7 napra. Cél: 50/25/25 (±5%), napi 60 perc, heti 7 óra.
+var NAV_TARGET = {input:0.50, output:0.25, deliberate:0.25};
+var NAV_TOL = 0.05;            // ±5 százalékpont
+var NAV_DAY_GOAL = 60*60;      // napi cél: 60 perc (mp)
+var NAV_WEEK_GOAL = 7*60*60;   // heti cél: 7 óra (mp)
+var NAV_COLORS = {input:'#3b82f6', output:'#22c55e', deliberate:'#f59e0b'};
+
+function renderWeekNavigator() {
+  var sumEl = document.getElementById('week-nav-summary');
   var wrap = document.getElementById('weekly-activity');
   if(!wrap) return;
-  // Gördülő 7 napos ablak: a mai nap mindig a jobb szélső oszlop
   var dayNames = ['V', 'H', 'K', 'Sze', 'Cs', 'P', 'Szo']; // getDay() szerinti index
   var timeData = JSON.parse(localStorage.getItem('learning_time') || '{}');
-  var dates = [];
+
+  // Gördülő 7 napos ablak: a mai nap a jobb szélen
+  var days = [];
   for(var i = 6; i >= 0; i--){
     var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
-    dates.push(d);
+    var cs = dayCategorySecs(timeData[localDateStr(d)]);
+    cs.total = cs.input + cs.output + cs.deliberate;
+    cs.date = d; cs.isToday = (i === 0);
+    days.push(cs);
   }
 
-  // Maximális perc skálázáshoz
-  var maxMin = 0;
-  dates.forEach(function(d){
-    var e = timeData[localDateStr(d)] || {app:0, anki:0};
-    var tot = Math.round((e.app + e.anki) / 60);
-    if(tot > maxMin) maxMin = tot;
+  // Heti összesítés
+  var wk = {input:0, output:0, deliberate:0};
+  var daysMet = 0, maxMin = 0;
+  days.forEach(function(c){
+    wk.input += c.input; wk.output += c.output; wk.deliberate += c.deliberate;
+    if(c.total >= NAV_DAY_GOAL) daysMet++;
+    var m = Math.round(c.total / 60); if(m > maxMin) maxMin = m;
   });
-  if(maxMin < 10) maxMin = 30; // minimum skála 30 perc
+  var wkTotal = wk.input + wk.output + wk.deliberate;
+  var p = {
+    input:      wkTotal ? wk.input/wkTotal : 0,
+    output:     wkTotal ? wk.output/wkTotal : 0,
+    deliberate: wkTotal ? wk.deliberate/wkTotal : 0
+  };
+  var pct = function(x){ return Math.round(x*100); };
+  var inOk  = wkTotal>0 && Math.abs(p.input - NAV_TARGET.input)   <= NAV_TOL;
+  var outOk = wkTotal>0 && Math.abs(p.output - NAV_TARGET.output) <= NAV_TOL;
+  var delOk = wkTotal>0 && Math.abs(p.deliberate - NAV_TARGET.deliberate) <= NAV_TOL;
+  var timeOk = wkTotal >= NAV_WEEK_GOAL;
 
-  var BAR_MAX = 50; // px
-  var html = '';
-  for(var i = 0; i < 7; i++){
-    var d = dates[i];
-    var ds = localDateStr(d);
-    var isToday = i === 6;
-    var e = timeData[ds] || {app:0, anki:0};
-    var appMin  = Math.round(e.app  / 60);
-    var ankiMin = Math.round(e.anki / 60);
-    var appH  = appMin  > 0 ? Math.max(4, Math.round(appMin  / maxMin * BAR_MAX)) : 0;
-    var ankiH = ankiMin > 0 ? Math.max(4, Math.round(ankiMin / maxMin * BAR_MAX)) : 0;
-    var isEmpty = appH === 0 && ankiH === 0;
-    // App-fill felső sarka lekerekített ha nincs felette Anki-fill
-    var appRadius = ankiH > 0 ? '0' : '3px 3px 0 0';
-    var opacity = isToday ? '1' : '.75';
-    var tooltip = (!isEmpty) ? 'App: '+appMin+' p  |  Anki: '+ankiMin+' p' : '';
-    html += '<div class="weekly-day-bar" title="'+tooltip+'">'
-      + '<div class="weekly-bar-stack">'
-      // column-reverse → első elem (app) alul, második (anki) felül
-      + (appH > 0
-          ? '<div class="weekly-app-fill" style="height:'+appH+'px;opacity:'+opacity+';border-radius:'+appRadius+'"></div>'
-          : (isEmpty ? '<div class="weekly-app-fill" style="height:3px;opacity:.15;border-radius:3px 3px 0 0"></div>' : ''))
-      + (ankiH > 0
-          ? '<div class="weekly-anki-fill" style="height:'+ankiH+'px;opacity:'+opacity+'"></div>'
-          : '')
+  // --- Összegző kártya ---
+  if(sumEl){
+    var hrs = (wkTotal/3600).toFixed(1).replace('.', ',');
+    var timeBarPct = Math.min(100, Math.round(wkTotal / NAV_WEEK_GOAL * 100));
+    var ico = function(ok){ return ok ? '<span class="nav-ok">✓</span>' : '<span class="nav-warn">!</span>'; };
+
+    // Arány-sáv szegmensei (csak ha van adat)
+    var ratioSeg = '';
+    if(wkTotal>0){
+      ['input','output','deliberate'].forEach(function(k){
+        var w = p[k]*100;
+        if(w>0) ratioSeg += '<div style="width:'+w+'%;background:'+NAV_COLORS[k]+'"></div>';
+      });
+    } else {
+      ratioSeg = '<div style="width:100%;background:var(--border2)"></div>';
+    }
+
+    // Verdikt
+    var verdict, vClass;
+    if(wkTotal===0){ verdict='Még nincs mért gyakorlás az elmúlt 7 napban.'; vClass='nav-verdict-neutral'; }
+    else {
+      var issues=[];
+      if(!timeOk) issues.push('kevés az összidő ('+hrs+'/7 ó)');
+      if(!inOk)  issues.push(p.input<NAV_TARGET.input?'kevés az input':'sok az input');
+      if(!outOk) issues.push(p.output<NAV_TARGET.output?'kevés az output':'sok az output');
+      if(!delOk) issues.push(p.deliberate<NAV_TARGET.deliberate?'kevés a tudatos gyakorlás':'sok a tudatos gyakorlás');
+      if(!issues.length){ verdict='Remek egyensúly — tartsd így!'; vClass='nav-verdict-ok'; }
+      else { verdict='Javítanivaló: '+issues.join(' · '); vClass='nav-verdict-warn'; }
+    }
+
+    sumEl.innerHTML =
+      '<div class="nav-total-row">'
+        + '<span class="nav-total-num">'+hrs+'</span><span class="nav-total-goal"> / 7 óra</span>'
+        + '<span class="nav-days-met">'+ico(daysMet>0)+' '+daysMet+'/7 nap megvolt az 1 óra</span>'
       + '</div>'
-      + '<div class="weekly-day-label'+(isToday?' wdl-today':'')+'">'+(isToday?'Ma':dayNames[d.getDay()])+'</div>'
-      + '</div>';
+      + '<div class="nav-time-track"><div class="nav-time-fill" style="width:'+timeBarPct+'%"></div></div>'
+      + '<div class="nav-ratio-track">'+ratioSeg
+        + '<span class="nav-tick" style="left:50%"></span><span class="nav-tick" style="left:75%"></span>'
+      + '</div>'
+      + '<div class="nav-ratio-legend">'
+        + '<span>Tény: <b style="color:'+NAV_COLORS.input+'">'+pct(p.input)+'%</b> / '
+          + '<b style="color:'+NAV_COLORS.output+'">'+pct(p.output)+'%</b> / '
+          + '<b style="color:'+NAV_COLORS.deliberate+'">'+pct(p.deliberate)+'%</b></span>'
+        + '<span class="nav-target-txt">Cél: 50 / 25 / 25</span>'
+      + '</div>'
+      + '<div class="nav-chips">'
+        + '<span class="nav-chip '+(inOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(inOk)+' Input '+pct(p.input)+'%</span>'
+        + '<span class="nav-chip '+(outOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(outOk)+' Output '+pct(p.output)+'%</span>'
+        + '<span class="nav-chip '+(delOk?'nav-chip-ok':'nav-chip-warn')+'">'+ico(delOk)+' Tudatos '+pct(p.deliberate)+'%</span>'
+      + '</div>'
+      + '<div class="nav-verdict '+vClass+'">'+verdict+'</div>';
   }
+
+  // --- Napi bontás (3 színű halmozott oszlopok + 60 perces célvonal) ---
+  if(maxMin < 60) maxMin = 60; // a skála legalább 60 perc, hogy a célvonal látszódjon
+  var BAR_MAX = 56; // px
+  var goalY = Math.round(NAV_DAY_GOAL/60 / maxMin * BAR_MAX);
+  var html = '';
+  days.forEach(function(c){
+    var isToday = c.isToday;
+    var seg = function(k){
+      var m = Math.round(c[k]/60);
+      if(m<=0) return '';
+      var h = Math.max(2, Math.round(m / maxMin * BAR_MAX));
+      return '<div class="nav-bar-fill" style="height:'+h+'px;background:'+NAV_COLORS[k]+';opacity:'+(isToday?'1':'.75')+'"></div>';
+    };
+    var totalMin = Math.round(c.total/60);
+    var met = c.total >= NAV_DAY_GOAL;
+    var tip = totalMin>0
+      ? totalMin+' p — Input: '+Math.round(c.input/60)+'p, Output: '+Math.round(c.output/60)+'p, Tudatos: '+Math.round(c.deliberate/60)+'p'
+      : 'Nincs gyakorlás';
+    html += '<div class="weekly-day-bar" title="'+tip+'">'
+      + '<div class="weekly-bar-stack" style="height:'+BAR_MAX+'px">'
+        + '<div class="nav-goal-line" style="bottom:'+goalY+'px"></div>'
+        // column-reverse → input alul, tudatos felül
+        + (c.total>0 ? seg('input')+seg('output')+seg('deliberate')
+                     : '<div class="nav-bar-fill" style="height:2px;background:var(--border2);opacity:.5"></div>')
+      + '</div>'
+      + '<div class="weekly-day-label'+(isToday?' wdl-today':'')+'">'
+        + (met?'<span class="nav-day-check">✓</span>':'')
+        + (isToday?'Ma':dayNames[c.date.getDay()])
+      + '</div>'
+    + '</div>';
+  });
   wrap.innerHTML = html;
 }
 
@@ -1087,7 +1192,8 @@ function toggleDropdown(id){
 }
 
 function showMain(name, el){
-  _panelTimer.begin(name); // tanulási idő mérése panelváltáskor
+  _activeMain = name;
+  _panelTimer.sync(); // tanulási idő kategóriájának frissítése panelváltáskor
   if(name!=='translate' && compSpeaking) compSpeakPause(); // felolvasás szüneteltetése panelváltáskor (a pozíció megmarad)
   document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn,.nav-dropdown-btn,.nav-sub-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -1104,6 +1210,7 @@ function showMain(name, el){
 
 function showSub(panel, sub, el){
   if(compSpeaking && !(panel==='translate'&&sub==='comprehension')) compSpeakPause(); // felolvasás szüneteltetése alfülváltáskor (a pozíció megmarad)
+  if(panel==='translate'){ _activeTranslateSub = sub; _panelTimer.sync(); } // időmérés kategóriája Fordítás-aldfül szerint
   var prefix = 'sub-'+panel+'-';
   document.querySelectorAll('[id^="'+prefix+'"]').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('#panel-'+panel+' .sub-tab').forEach(function(b){ b.classList.remove('active'); });
@@ -3187,8 +3294,8 @@ async function ankiFetchReviewTimes(cardIds){
   if(Object.keys(reviewTimes).length){
     var ltData = JSON.parse(localStorage.getItem('learning_time')||'{}');
     Object.keys(reviewTimes).forEach(function(date){
-      if(!ltData[date]) ltData[date]={app:0,anki:0};
-      ltData[date].anki = reviewTimes[date];
+      if(!ltData[date]) ltData[date]={};
+      ltData[date].anki = reviewTimes[date]; // a tudatos gyakorlásba számít (lásd dayCategorySecs)
     });
     localStorage.setItem('learning_time', JSON.stringify(ltData));
   }
